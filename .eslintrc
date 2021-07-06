@@ -1,0 +1,23 @@
+{
+    "extends": ["react-app", "prettier"],
+    "plugins": ["react-hooks"],
+    "env": {
+      "meteor": true
+    },
+    "rules": {
+      "import/no-unresolved": "error",
+      "prefer-const": "warn",
+      "no-shadow": "warn",
+      "no-var": "warn",
+      "object-shorthand": "warn",
+      "react/no-unused-prop-types": "warn",
+      "react/no-unused-state": "warn",
+      "react/prop-types": "warn",
+      "react/jsx-key": "warn",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "error"
+    },
+    "settings": {
+      "import/resolver": "meteor"
+    }
+  }
