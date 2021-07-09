@@ -1,0 +1,10 @@
+{
+  "short_name": "Wetter",
+  "name": "Wetterdaten",
+  "icons": [],
+  "start_url": "/",
+  "background_color": "#FFFFFF",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#3367D6"
+}
