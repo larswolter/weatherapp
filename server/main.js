@@ -4,15 +4,15 @@ import { WebApp } from 'meteor/webapp';
 import { SensorReadings } from '../imports/api/sensorData';
 
 const SENSOR_FIELDS = {
-  date:1,
-  'parsed.tempf':1,
-  'parsed.tempinf':1,
-  'parsed.humidity':1,
-  'parsed.humidityin':1,
-  'parsed.soilmoisture1':1,
-  'parsed.rainratein':1,
-  'parsed.windspeedmph':1,
-  'parsed.solarradiation':1,
+  date: 1,
+  'parsed.tempf': 1,
+  'parsed.tempinf': 1,
+  'parsed.humidity': 1,
+  'parsed.humidityin': 1,
+  'parsed.soilmoisture1': 1,
+  'parsed.rainratein': 1,
+  'parsed.windspeedmph': 1,
+  'parsed.solarradiation': 1,
 };
 
 Meteor.publish('sensorReadings', function (start, end) {
@@ -22,29 +22,41 @@ Meteor.publish('sensorReadings', function (start, end) {
   if (start && end) search.date = { $lte: start, $gte: end };
   else if (start) search.date = { $lte: start };
   else if (end) search.date = { $gte: end };
-  else return SensorReadings.find(search, { fields: SENSOR_FIELDS, sort: { date: -1 }, limit: 1 });
+  else return SensorReadings.find(search, { sort: { date: -1 }, limit: 1 });
   return SensorReadings.find(search, { fields: SENSOR_FIELDS, sort: { date: -1 }, limit: 800 });
 });
-Meteor.methods({
-  async sensorAggregation(start,end) {
-    const search = {};
-    if (start && end) search.date = { $lte: start, $gte: end };
-    else if (start) search.date = { $lte: start };
-    else if (end) search.date = { $gte: end };
-    return await SensorReadings.rawCollection().aggregate([
-      {$match:search},
-      {$bucketAuto: {
-        $groupBy:'$date',
-        buckets: 20,
+Meteor.publish('sensorAggregation', function (start, end, buckets) {
+  const search = {};
+  if (start && end) search.date = { $lte: start, $gte: end };
+  else if (start) search.date = { $lte: start };
+  else if (end) search.date = { $gte: end };
+  SensorReadings.rawCollection().aggregate([
+    { $match: search },
+    {
+      $bucketAuto: {
+        groupBy: '$date',
+        buckets,
         output: {
-          tempinf: {$average: '$parsed.tempinf'},
-          tempf: {$average: '$parsed.tempf'},
-          date: {$first:'$date'}
+          tempinf: { $avg: '$parsed.tempinf' },
+          tempf: { $avg: '$parsed.tempf' },
+          humidityin: { $avg: '$parsed.humidityin' },
+          humidity: { $avg: '$parsed.humidity' },
+          rainratein: { $avg: '$parsed.rainratein' },
+          windspeedmph: { $avg: '$parsed.windspeedmph' },
+          soilmoisture1: { $avg: '$parsed.soilmoisture1' },
+          solarradiation: { $avg: '$parsed.solarradiation' },
+          date: { $first: '$date' }
         }
-      }}
-    ]).toArray();
-  }
-})
+
+      }
+    }
+  ]).forEach((doc => {
+    this.added('sensorReadings', +doc._id.min + '', { ...doc, _id: doc._id.min + '' });
+  })).finally(() => this.ready()).catch((err) => {
+    throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
+  })
+});
+
 WebApp.connectHandlers.use('/weatherinput', (request, response) => {
   let raw = '';
   request.on('data', (chunk) => {
@@ -54,7 +66,7 @@ WebApp.connectHandlers.use('/weatherinput', (request, response) => {
     const parsed = {};
     raw.split('&').forEach(pair => {
       const [key, value] = pair.split('=');
-      parsed[key] = value;
+      parsed[key] = value.match(/^[0-9.]+$/) ? Number(value) : value;
     });
     SensorReadings.insert({ date: new Date(), raw, parsed });
 
@@ -62,3 +74,16 @@ WebApp.connectHandlers.use('/weatherinput', (request, response) => {
     response.end();
   }));
 });
+Meteor.startup(() => {
+  SensorReadings.find().forEach(r => {
+    if (typeof r.parsed.tempf === 'string') {
+      const parsed = {};
+      Object.keys(r.parsed).forEach(key => {
+        const value = r.parsed[key];
+        parsed[key] = value.match(/^[0-9.]+$/) ? Number(value) : value;
+      });
+      SensorReadings.update(r._id, { $set: { parsed } });
+    }
+  });
+
+})
