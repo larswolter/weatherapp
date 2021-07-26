@@ -24,7 +24,9 @@ const useStyles = makeStyles(theme => {
 const Dashboard = () => {
   const classes = useStyles()
   useEffect(() => {
-    const sub = Meteor.subscribe('sensorReadings');
+    const sub = Meteor.subscribe('sensorReadings',(err)=>{
+      console.log(err);
+    });
     return () => sub.stop();
   }, []);
   const sensorReadings = useTracker(() => {
