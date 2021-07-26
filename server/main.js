@@ -3,6 +3,8 @@ import { check, Match } from 'meteor/check';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings } from '../imports/api/sensorData';
 
+
+
 const SENSOR_FIELDS = {
   date: 1,
   'parsed.tempf': 1,
@@ -15,7 +17,17 @@ const SENSOR_FIELDS = {
   'parsed.solarradiation': 1,
 };
 
+Meteor.methods({
+  authenticate(token) {
+    if(process.env.ACCESS_TOKEN && process.env.ACCESS_TOKEN !== token) throw new Meteor.Error(403,'access denied');
+    this.setUserId('authenticated');
+    return process.env.ACCESS_TOKEN || 'dummy-token';
+  }
+})
+
 Meteor.publish('sensorReadings', function (start, end) {
+  console.log('sensor readings',this.userId);
+  if(!this.userId) throw new Meteor.Error(403,'access denied');
   //check(start, Match.Maybe(Date));
   //check(end, Match.Maybe(Date));
   const search = {};
@@ -58,6 +70,13 @@ Meteor.publish('sensorAggregation', function (start, end, buckets) {
 });
 
 WebApp.connectHandlers.use('/weatherinput', (request, response) => {
+  if(process.env.SUBMIT_TOKEN && process.env.SUBMIT_TOKEN !== request.query.token) {
+    response.writeHead(403);
+    response.end();
+    console.log(`Blocked sensor reading submitions with token ${request.query.token}`);
+    return;
+  }
+
   let raw = '';
   request.on('data', (chunk) => {
     raw += chunk.toString();
