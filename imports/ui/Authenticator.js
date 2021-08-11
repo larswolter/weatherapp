@@ -7,7 +7,7 @@ const token = window.location.search ? window.location.search.split('=')[1] :
 
 window.history.replaceState({}, 'Wetter', window.location.toString().split('?')[0]);
 
-const Authenticator = () => {
+const Authenticator = ({children}) => {
   const [authError, setAutherror] = useState(null);
   useEffect(() => {
     if (token) {
@@ -17,7 +17,7 @@ const Authenticator = () => {
       });
     }
   });
-  return authError ? <Alert color="error"><AlertTitle>{authError}</AlertTitle></Alert>:null;
+  return authError ? <Alert severity="error"><AlertTitle>{authError}</AlertTitle></Alert>:children;
 }
 
 export default Authenticator;

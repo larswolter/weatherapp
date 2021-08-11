@@ -3,6 +3,9 @@ import { check, Match } from 'meteor/check';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings } from '../imports/api/sensorData';
 
+Meteor.startup(()=>{
+  console.log(`Starting Weatherapp ${process.env.ACCESS_TOKEN?'using access token':'without access token'} and ${process.eventNames.SUBMIT_TOKEN?'using submit token':'without submit token'}`);
+});
 
 
 const SENSOR_FIELDS = {

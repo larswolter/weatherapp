@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { beaufort, SensorReadings } from '../api/sensorData';
-import { Grid, CircularProgress, makeStyles } from '@material-ui/core';
+import { Grid, CircularProgress, makeStyles, LinearProgress, Box } from '@material-ui/core';
 import DashboardItem from './DashboardItem';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -24,7 +24,7 @@ const useStyles = makeStyles(theme => {
 const Dashboard = () => {
   const classes = useStyles()
   useEffect(() => {
-    const sub = Meteor.subscribe('sensorReadings',(err)=>{
+    const sub = Meteor.subscribe('sensorReadings', (err) => {
       console.log(err);
     });
     return () => sub.stop();
@@ -33,9 +33,12 @@ const Dashboard = () => {
     return SensorReadings.find({}, { sort: { date: -1 } }).fetch();
   });
   const reading = sensorReadings[0]?.parsed;
-  if (!reading || !reading.dateutc) return <CircularProgress />
+  if (!reading || !reading.dateutc) return <Box textAlign="center" >
+    <LinearProgress variant="indeterminate" />
+    Lade Wetterdaten
+  </Box>
 
-  const wind = beaufort.find(b=>b.mph >= reading.windspdmph_avg10m);
+  const wind = beaufort.find(b => b.mph >= reading.windspdmph_avg10m);
   console.log(reading);
   return (
     <Grid container spacing={1}>
@@ -60,11 +63,11 @@ const Dashboard = () => {
         text="Außenfeuchtigkeit" />
       <DashboardItem
         src={`/icons/wind-beaufort-${wind.beaufort}.svg`}
-        value={`${(reading.windspdmph_avg10m* 1.60934).toFixed(2)} km/h`}
+        value={`${(reading.windspdmph_avg10m * 1.60934).toFixed(2)} km/h`}
         text="Windgeschwindigkeit" />
       <DashboardItem
-        src={reading.uv?`/icons/uv-index-${reading.uv}.svg`:'/icons/clear-day.svg'}
-        value={`${(reading.solarradiation).toFixed(4)} Watt ${reading.uv?'':',Kein UV Index'}`}
+        src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
+        value={`${(reading.solarradiation).toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
         text="Sonnenstrahlung und UV Index" />
       <DashboardItem
         src={'/icons/rain.svg'}

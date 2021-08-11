@@ -10,7 +10,8 @@ const theme = createTheme({});
 Meteor.startup(() => {
   render(<ThemeProvider theme={theme}>
     <CssBaseline />
-    <Authenticator />
-    <App />
+    <Authenticator >
+      <App />
+    </Authenticator>
   </ThemeProvider>, document.getElementById('react-target'));
 });
