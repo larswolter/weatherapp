@@ -11,39 +11,15 @@ import de from 'dayjs/locale/de';
 dayjs.locale(de);
 dayjs.extend(utc);
 
-const useStyles = makeStyles(theme => {
-  return {
-    root: {
-      margin: theme.spacing()
-    }
-  }
-});
-
-
-
-const Dashboard = () => {
-  const classes = useStyles()
-  useEffect(() => {
-    const sub = Meteor.subscribe('sensorReadings', (err) => {
-      console.log(err);
-    });
-    return () => sub.stop();
-  }, []);
-  const sensorReadings = useTracker(() => {
-    return SensorReadings.find({}, { sort: { date: -1 } }).fetch();
-  });
-  const reading = sensorReadings[0]?.parsed;
-  if (!reading || !reading.dateutc) return <Box textAlign="center" >
-    <LinearProgress variant="indeterminate" />
-    Lade Wetterdaten
-  </Box>
+const Dashboard = ({latest}) => {
+  const reading = latest?.parsed;
 
   const wind = beaufort.find(b => b.mph >= reading.windspdmph_avg10m);
-  console.log(reading);
+  const windgust = beaufort.find(b => b.mph >= reading.windgustmph);
   return (
     <Grid container spacing={1}>
       <Grid xs={12} item>
-        {reading.dateutc.split('+').join(' ')}
+        {dayjs.utc(reading.dateutc.split('+').join(' '),'YYYY-MM-DD HH:mm:ss').local().format('DD.MM.YYYY HH:mm')}
       </Grid>
       <DashboardItem
         src="/icons/thermometer.svg"
@@ -65,6 +41,10 @@ const Dashboard = () => {
         src={`/icons/wind-beaufort-${wind.beaufort}.svg`}
         value={`${(reading.windspdmph_avg10m * 1.60934).toFixed(2)} km/h`}
         text="Windgeschwindigkeit" />
+      <DashboardItem
+        src={`/icons/wind-beaufort-${windgust.beaufort}.svg`}
+        value={`${(reading.windgustmph * 1.60934).toFixed(2)} km/h`}
+        text="Windböhen" />
       <DashboardItem
         src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
         value={`${(reading.solarradiation).toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}

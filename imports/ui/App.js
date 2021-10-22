@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BottomNavigation, BottomNavigationAction, Box, makeStyles } from '@material-ui/core';
+import React, { useEffect, useState } from 'react';
+import { BottomNavigation, BottomNavigationAction, Box, LinearProgress, makeStyles } from '@material-ui/core';
 import DashboardIcon from '@material-ui/icons/Dashboard';
 import HistoryIcon from '@material-ui/icons/ShowChart';
 import Dashboard from './Dashboard';
@@ -28,10 +28,23 @@ const useStyles = makeStyles(theme => {
 
 export const App = () => {
   const [view, setView] = useState('Dashboard');
+  const [latest, setLatest] = useState();
+  useEffect(() => {
+    Meteor.call('latestSensorData', (err,res) => {
+      console.log(err, res);
+      res && setLatest(res);
+    });
+  }, []);
+  console.log(latest)
   const classes = useStyles();
+  if (!latest) return <Box textAlign="center" >
+    <LinearProgress variant="indeterminate" />
+    Lade Wetterdaten
+  </Box>
+
   return <Box className={classes.root}>
     <Box className={classes.content}>
-      {view === 'Dashboard' ? <Dashboard /> : <History />}
+      {view === 'Dashboard' ? <Dashboard latest={latest} /> : (latest && <History latest={latest} />)}
     </Box>
     <BottomNavigation
       value={view}

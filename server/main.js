@@ -25,6 +25,10 @@ Meteor.methods({
     if(process.env.ACCESS_TOKEN && process.env.ACCESS_TOKEN !== token) throw new Meteor.Error(403,'access denied');
     this.setUserId('authenticated');
     return process.env.ACCESS_TOKEN || 'dummy-token';
+  },
+  latestSensorData() {
+    if(!this.userId) throw new Meteor.Error(403,'access denied');
+    return SensorReadings.findOne({}, { sort: { date: -1 } });
   }
 })
 
