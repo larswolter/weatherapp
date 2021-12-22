@@ -17,11 +17,6 @@ const useStyles = makeStyles(theme => {
       bottom: 0,
       left: 0,
       right: 0,
-    },
-    content: {
-      padding: theme.spacing(),
-      overflow: 'auto',
-      flexBasis: '100%'
     }
   }
 });
@@ -43,7 +38,7 @@ export const App = () => {
   </Box>
 
   return <Box className={classes.root}>
-    <Box className={classes.content}>
+    <Box flexBasis="100%" overflow="hidden">
       {view === 'Dashboard' ? <Dashboard latest={latest} /> : (latest && <History latest={latest} />)}
     </Box>
     <BottomNavigation

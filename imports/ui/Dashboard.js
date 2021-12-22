@@ -1,61 +1,47 @@
-import React, { useEffect } from 'react';
-import { Meteor } from 'meteor/meteor';
-import { useTracker } from 'meteor/react-meteor-data';
-import { beaufort, SensorReadings } from '../api/sensorData';
-import { Grid, CircularProgress, makeStyles, LinearProgress, Box } from '@material-ui/core';
-import DashboardItem from './DashboardItem';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import de from 'dayjs/locale/de';
+import React, { useEffect } from 'react'
+import { Meteor } from 'meteor/meteor'
+import { useTracker } from 'meteor/react-meteor-data'
+import { beaufort, SensorReadings } from '../api/sensorData'
+import { Grid, CircularProgress, makeStyles, LinearProgress, Box } from '@material-ui/core'
+import DashboardItem from './DashboardItem'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import de from 'dayjs/locale/de'
 
-dayjs.locale(de);
-dayjs.extend(utc);
+dayjs.locale(de)
+dayjs.extend(utc)
 
-const Dashboard = ({latest}) => {
-  const reading = latest?.parsed;
+const Dashboard = ({ latest }) => {
+  const reading = latest?.parsed
 
-  const wind = beaufort.find(b => b.mph >= reading.windspdmph_avg10m);
-  const windgust = beaufort.find(b => b.mph >= reading.windgustmph);
+  const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m)
+  const windgust = beaufort.find((b) => b.mph >= reading.windgustmph)
   return (
-    <Grid container spacing={1}>
-      <Grid xs={12} item>
-        {dayjs.utc(reading.dateutc.split('+').join(' '),'YYYY-MM-DD HH:mm:ss').local().format('DD.MM.YYYY HH:mm')}
+    <Box padding={2} overflow="auto" height="100%">
+      <Grid container spacing={1}>
+        <Grid xs={12} item>
+          {dayjs.utc(reading.dateutc.split('+').join(' '), 'YYYY-MM-DD HH:mm:ss').local().format('DD.MM.YYYY HH:mm')}
+        </Grid>
+        <DashboardItem src="/icons/thermometer.svg" value={`${(((reading.tempinf - 32) * 5) / 9).toFixed(2)} °C`} text="Innentemperatur" />
+        <DashboardItem src="/icons/thermometer.svg" value={`${(((reading.tempf - 32) * 5) / 9).toFixed(2)} °C`} text="Außentemperatur" />
+        <DashboardItem src="/icons/humidity.svg" value={`${reading.humidityin.toFixed(2)} %`} text="Innenraumfeuchtigkeit" />
+        <DashboardItem src="/icons/humidity.svg" value={`${reading.humidity.toFixed(2)} %`} text="Außenfeuchtigkeit" />
+        <DashboardItem
+          src={`/icons/wind-beaufort-${wind.beaufort}.svg`}
+          value={`${(reading.windspdmph_avg10m * 1.60934).toFixed(2)} km/h`}
+          text="Windgeschwindigkeit"
+        />
+        <DashboardItem src={`/icons/wind-beaufort-${windgust.beaufort}.svg`} value={`${(reading.windgustmph * 1.60934).toFixed(2)} km/h`} text="Windböhen" />
+        <DashboardItem
+          src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
+          value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
+          text="Sonnenstrahlung und UV Index"
+        />
+        <DashboardItem src={'/icons/rain.svg'} value={`${reading.hourlyrainin.toFixed(2)} mm `} text="Regenmenge pro Stunde" />
       </Grid>
-      <DashboardItem
-        src="/icons/thermometer.svg"
-        value={`${((reading.tempinf - 32) * 5 / 9).toFixed(2)} °C`}
-        text="Innentemperatur" />
-      <DashboardItem
-        src="/icons/thermometer.svg"
-        value={`${((reading.tempf - 32) * 5 / 9).toFixed(2)} °C`}
-        text="Außentemperatur" />
-      <DashboardItem
-        src="/icons/humidity.svg"
-        value={`${(reading.humidityin).toFixed(2)} %`}
-        text="Innenraumfeuchtigkeit" />
-      <DashboardItem
-        src="/icons/humidity.svg"
-        value={`${(reading.humidity).toFixed(2)} %`}
-        text="Außenfeuchtigkeit" />
-      <DashboardItem
-        src={`/icons/wind-beaufort-${wind.beaufort}.svg`}
-        value={`${(reading.windspdmph_avg10m * 1.60934).toFixed(2)} km/h`}
-        text="Windgeschwindigkeit" />
-      <DashboardItem
-        src={`/icons/wind-beaufort-${windgust.beaufort}.svg`}
-        value={`${(reading.windgustmph * 1.60934).toFixed(2)} km/h`}
-        text="Windböhen" />
-      <DashboardItem
-        src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
-        value={`${(reading.solarradiation).toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
-        text="Sonnenstrahlung und UV Index" />
-      <DashboardItem
-        src={'/icons/rain.svg'}
-        value={`${(reading.hourlyrainin).toFixed(2)} mm `}
-        text="Regenmenge pro Stunde" />
-    </Grid>
-  );
-};
+    </Box>
+  )
+}
 
 /*
 {
@@ -87,4 +73,4 @@ const Dashboard = ({latest}) => {
   "model": "WS2350"
 }
 */
-export default Dashboard;
+export default Dashboard
