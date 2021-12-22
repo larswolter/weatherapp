@@ -3,7 +3,7 @@ import { Meteor } from 'meteor/meteor'
 import { useTracker } from 'meteor/react-meteor-data'
 import { SensorReadings } from '../api/sensorData'
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea } from 'recharts'
-import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material'
+import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select } from '@mui/material'
 import dayjs from 'dayjs'
 import { Box } from '@mui/material'
 import { ChevronLeft, ChevronRight } from '@mui/icons-material'
@@ -26,6 +26,7 @@ const dateFormater = (mode) => (item) => {
 }
 
 const History = ({ latest }) => {
+  const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState('hour')
   const [dateRange, setDateRange] = useState([+latest.date, +dayjs(latest.date).subtract(1, 'hour').toDate()])
   const [refAreaLeft, setRefAreaLeft] = useState()
@@ -50,15 +51,20 @@ const History = ({ latest }) => {
   useEffect(() => {
     const start = dateRange[0]
     let end = dateRange[1]
-    let sub
+    let sub;
+    setLoading(true);
     if (dayjs(dateRange[0]).diff(dateRange[1], 'minute') < 18) {
       end = +dayjs(dateRange[0]).subtract(20, 'minute')
       setDateRange([dateRange[0], end])
     }
     if (dayjs(start).diff(end, 'hour') > 4) {
-      sub = Meteor.subscribe('sensorAggregation', dayjs(start).toDate(), dayjs(end).toDate(), Math.floor(window.innerWidth / 3))
+      sub = Meteor.subscribe('sensorAggregation', dayjs(start).toDate(), dayjs(end).toDate(), Math.floor(window.innerWidth / 3),()=>{
+        setLoading(false);
+      })
     } else {
-      sub = Meteor.subscribe('sensorReadings', dayjs(start).toDate(), dayjs(end).toDate())
+      sub = Meteor.subscribe('sensorReadings', dayjs(start).toDate(), dayjs(end).toDate(),()=>{
+        setLoading(false);
+      })
     }
     if (dayjs(start).diff(end, 'hour') < 3) setMode('hour')
     else if (dayjs(start).diff(end, 'day') < 3) setMode('day')
@@ -197,6 +203,7 @@ const History = ({ latest }) => {
           </LineChart>
         </ResponsiveContainer>
       </Box>
+      {loading && <LinearProgress />}
       <Box boxShadow="0px -3px 5px rgba(0,0,0,0.2)" paddingY={2} display="flex" flexDirection="row" justifyContent="space-between">
         <Button disabled={dateRange[0] >= +latest.date}>
           <ChevronLeft onClick={() => setDateRange(dateRange.map((d) => Math.min(latest.date, +dayjs(d).add(1, mode))))} />
