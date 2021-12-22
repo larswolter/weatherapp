@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Meteor } from 'meteor/meteor';
-import { Alert, AlertTitle } from '@material-ui/lab';
-import { Box, LinearProgress } from '@material-ui/core';
+import { Alert, AlertTitle } from '@mui/material';
+import { Box, LinearProgress } from '@mui/material';
 
 const token = window.location.search ? window.location.search.split('=')[1] :
   window.localStorage.getItem('token');

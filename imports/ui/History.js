@@ -1,14 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Meteor } from 'meteor/meteor'
 import { useTracker } from 'meteor/react-meteor-data'
 import { SensorReadings } from '../api/sensorData'
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea } from 'recharts'
-import { makeStyles } from '@material-ui/styles'
-import { Button, FormControl, InputLabel, MenuItem, Paper, Select, Slider } from '@material-ui/core'
+import { Button, FormControl, InputLabel, MenuItem, Select } from '@mui/material'
 import dayjs from 'dayjs'
-import { Box } from '@material-ui/core'
-import debounce from '@material-ui/core/utils/debounce'
-import { ChevronLeft, ChevronRight } from '@material-ui/icons'
+import { Box } from '@mui/material'
+import { ChevronLeft, ChevronRight } from '@mui/icons-material'
 
 const dateFormater = (mode) => (item) => {
   switch (mode) {
@@ -206,7 +204,7 @@ const History = ({ latest }) => {
         <Box>{dayjs(dateRange[0]).format('DD.MM.YYYY')}</Box>
         <FormControl>
           <InputLabel id="mode-label">Zeitraum</InputLabel>
-          <Select labelId="mode-label" id="mode-select" value={mode} onChange={changeMode}>
+          <Select variant="standard" labelId="mode-label" id="mode-select" value={mode} onChange={changeMode}>
             <MenuItem value={'hour'}>Stunde</MenuItem>
             <MenuItem value={'day'}>Tag</MenuItem>
             <MenuItem value={'week'}>Woche</MenuItem>

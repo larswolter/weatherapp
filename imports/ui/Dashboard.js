@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react'
-import { Meteor } from 'meteor/meteor'
-import { useTracker } from 'meteor/react-meteor-data'
-import { beaufort, SensorReadings } from '../api/sensorData'
-import { Grid, CircularProgress, makeStyles, LinearProgress, Box } from '@material-ui/core'
+import React from 'react'
+import { beaufort } from '../api/sensorData'
+import { Grid, Box } from '@mui/material';
 import DashboardItem from './DashboardItem'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
