@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BottomNavigation, BottomNavigationAction, Box, LinearProgress } from '@mui/material';
+import { useTracker } from 'meteor/react-meteor-data'
+import { SensorReadings } from '../api/sensorData'
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/ShowChart';
 import Dashboard from './Dashboard';
@@ -7,13 +9,15 @@ import History from './History';
 
 export const App = () => {
   const [view, setView] = useState('Dashboard');
-  const [latest, setLatest] = useState();
+  
   useEffect(() => {
-    Meteor.call('latestSensorData', (err,res) => {
-      console.log(err, res);
-      res && setLatest(res);
-    });
+    const sub = Meteor.subscribe('sensorReadings');
+    return ()=>sub.stop();
   }, []);
+  const latest = useTracker(() => {
+    return SensorReadings.findOne({}, { sort: { date: -1 } });
+  })
+
   console.log('Latest data', latest)
   if (!latest) return <Box textAlign="center" >
     <LinearProgress variant="indeterminate" />
