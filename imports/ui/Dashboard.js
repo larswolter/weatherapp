@@ -26,10 +26,10 @@ const Dashboard = ({ latest }) => {
         <DashboardItem src="/icons/humidity.svg" value={`${reading.humidity.toFixed(2)} %`} text="Außenfeuchtigkeit" />
         <DashboardItem
           src={`/icons/wind-beaufort-${wind.beaufort}.svg`}
-          value={`${(reading.windspdmph_avg10m * 1.60934).toFixed(2)} km/h`}
+          value={`${(reading.windspdmph_avg10m * 1.609344).toFixed(2)} km/h`}
           text="Windgeschwindigkeit"
         />
-        <DashboardItem src={`/icons/wind-beaufort-${windgust.beaufort}.svg`} value={`${(reading.windgustmph * 1.60934).toFixed(2)} km/h`} text="Windböhen" />
+        <DashboardItem src={`/icons/wind-beaufort-${windgust.beaufort}.svg`} value={`${(reading.windgustmph * 1.609344).toFixed(2)} km/h`} text="Windböhen" />
         <DashboardItem
           src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
           value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}

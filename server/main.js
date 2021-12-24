@@ -17,6 +17,7 @@ const SENSOR_FIELDS = {
   'parsed.soilmoisture1': 1,
   'parsed.rainratein': 1,
   'parsed.windspeedmph': 1,
+  'parsed.windgustmph': 1,
   'parsed.solarradiation': 1,
 };
 
@@ -64,6 +65,7 @@ Meteor.publish('sensorAggregation', function (start, end, buckets) {
           windspeedmph: { $avg: '$parsed.windspeedmph' },
           soilmoisture1: { $avg: '$parsed.soilmoisture1' },
           solarradiation: { $avg: '$parsed.solarradiation' },
+          windgustmph: { $max:'$parsed.windgustmph' },
           date: { $first: '$date' }
         }
 
