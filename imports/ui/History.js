@@ -85,8 +85,10 @@ const History = ({ latest }) => {
     }
   }
   const sensorReadings = useTracker(() => {
-    return SensorReadings.find({}, { sort: { date: -1 } }).fetch()
-  })
+    const start = dayjs(dateRange[0]).toDate();
+    const end = dayjs(dateRange[1]).toDate();
+    return SensorReadings.find({date:{ $lte: start, $gte: end }}, { sort: { date: -1 } }).fetch()
+  },[dateRange]);
   const diagramHeight = (window.innerHeight - 210) / diagramTypes.length;
   return (
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">

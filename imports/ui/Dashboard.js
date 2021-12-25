@@ -1,19 +1,27 @@
-import React from 'react'
-import { beaufort } from '../api/sensorData'
+import React from 'react';
+import { beaufort } from '../api/sensorData';
 import { Grid, Box } from '@mui/material';
-import DashboardItem from './DashboardItem'
-import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
-import de from 'dayjs/locale/de'
+import DashboardItem from './DashboardItem';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import de from 'dayjs/locale/de';
 
-dayjs.locale(de)
-dayjs.extend(utc)
+dayjs.locale(de);
+dayjs.extend(utc);
+
+const degToCompass = (num) => {
+  const val = Number(num) / 22.5 + 0.5;
+  const arr = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return arr[Math.floor(val) % 16];
+};
 
 const Dashboard = ({ latest }) => {
-  const reading = latest?.parsed
+  const reading = latest?.parsed;
 
-  const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m)
-  const windgust = beaufort.find((b) => b.mph >= reading.windgustmph)
+  const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
+  const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
+  const winddir = degToCompass(reading.winddir_avg10m);
+  console.log('WInd:',{dir:reading.winddir_avg10m,winddir,test:degToCompass(180),test2:degToCompass(0)})
   return (
     <Box padding={2} overflow="auto" height="100%">
       <Grid container spacing={1}>
@@ -27,19 +35,27 @@ const Dashboard = ({ latest }) => {
         <DashboardItem
           src={`/icons/wind-beaufort-${wind.beaufort}.svg`}
           value={`${(reading.windspdmph_avg10m * 1.609344).toFixed(2)} km/h`}
-          text="Windgeschwindigkeit"
+          text={`Windgeschwindigkeit ${winddir}`}
         />
-        <DashboardItem src={`/icons/wind-beaufort-${windgust.beaufort}.svg`} value={`${(reading.windgustmph * 1.609344).toFixed(2)} km/h`} text="Windböhen" />
+        <DashboardItem
+          src={`/icons/wind-beaufort-${windgust.beaufort}.svg`}
+          value={`${(reading.windgustmph * 1.609344).toFixed(2)} km/h`}
+          text={['Windböhen', `Stärkste Böhe ${(reading.maxdailygust * 1.609344).toFixed(2)} km/h`]}
+        />
         <DashboardItem
           src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
           value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
           text="Sonnenstrahlung und UV Index"
         />
-        <DashboardItem src={'/icons/rain.svg'} value={`${reading.hourlyrainin.toFixed(2)} mm `} text="Regenmenge pro Stunde" />
+        <DashboardItem
+          src={'/icons/rain.svg'}
+          value={`${reading.hourlyrainin.toFixed(2)} mm `}
+          text={['Regenmenge pro Stunde', `Regen heute ${reading.dailyrainin.toFixed(2)} mm`]}
+        />
       </Grid>
     </Box>
-  )
-}
+  );
+};
 
 /*
 {
@@ -71,4 +87,4 @@ const Dashboard = ({ latest }) => {
   "model": "WS2350"
 }
 */
-export default Dashboard
+export default Dashboard;
