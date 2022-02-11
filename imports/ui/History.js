@@ -1,95 +1,125 @@
-import React, { useEffect, useState } from 'react'
-import { Meteor } from 'meteor/meteor'
-import { useTracker } from 'meteor/react-meteor-data'
-import { SensorReadings } from '../api/sensorData'
-import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea, Area, AreaChart } from 'recharts'
-import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select } from '@mui/material'
-import dayjs from 'dayjs'
-import { Box } from '@mui/material'
-import { ChevronLeft, ChevronRight } from '@mui/icons-material'
+import React, { useEffect, useState } from 'react';
+import { Meteor } from 'meteor/meteor';
+import { useTracker } from 'meteor/react-meteor-data';
+import { SensorReadings } from '../api/sensorData';
+import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea, Area, AreaChart } from 'recharts';
+import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select } from '@mui/material';
+import dayjs from 'dayjs';
+import { Box } from '@mui/material';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 const dateFormater = (mode) => (item) => {
   switch (mode) {
     case 'hour':
-      return dayjs(item).format('HH:mm')
+      return dayjs(item).format('HH:mm');
     case 'day':
-      return dayjs(item).format('ddd HH:mm')
+      return dayjs(item).format('ddd HH:mm');
     case 'week':
-      return dayjs(item).format('DD.MM.')
+      return dayjs(item).format('DD.MM.');
     case 'month':
-      return dayjs(item).format('DD.MM.')
+      return dayjs(item).format('DD.MM.');
     case 'year':
-      return dayjs(item).format('DD.MM.')
+      return dayjs(item).format('DD.MM.');
     default:
-      return dayjs(item).format('DD.MM. HH:mm')
+      return dayjs(item).format('DD.MM. HH:mm');
   }
-}
+};
 
 const History = ({ latest }) => {
-  const [diagramTypes, setDiagramTypes] = useState(['temp'])
-  const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState('hour')
-  const [dateRange, setDateRange] = useState([+latest.date, +dayjs(latest.date).subtract(1, 'hour').toDate()])
-  const [refAreaLeft, setRefAreaLeft] = useState()
-  const [refAreaRight, setRefAreaRight] = useState()
+  const [diagramTypes, setDiagramTypes] = useState(['temp']);
+  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('hour');
+  const [dateRange, setDateRange] = useState([+latest.date, +dayjs(latest.date).subtract(1, 'hour').toDate()]);
+  const [refAreaLeft, setRefAreaLeft] = useState();
+  const [refAreaRight, setRefAreaRight] = useState();
   const changeMode = (event) => {
-    setMode(event.target.value)
-    setDateRange([dateRange[0], +dayjs(dateRange[0]).subtract(1, event.target.value)])
-  }
+    setMode(event.target.value);
+    setDateRange([dateRange[0], +dayjs(dateRange[0]).subtract(1, event.target.value)]);
+  };
   const zoom = () => {
     if (refAreaLeft === refAreaRight || refAreaRight === 0) {
-      setRefAreaRight(0)
-      setRefAreaLeft(0)
-      return
+      setRefAreaRight(0);
+      setRefAreaLeft(0);
+      return;
     }
 
     // xAxis domain
-    let [left, right] = [refAreaLeft, refAreaRight]
-    if (refAreaLeft < refAreaRight) [left, right] = [refAreaRight, refAreaLeft]
-    setDateRange([left, right])
-  }
+    let [left, right] = [refAreaLeft, refAreaRight];
+    if (refAreaLeft < refAreaRight) [left, right] = [refAreaRight, refAreaLeft];
+    setDateRange([left, right]);
+  };
 
   useEffect(() => {
-    const start = dateRange[0]
-    let end = dateRange[1]
-    let sub
-    setLoading(true)
+    const start = dateRange[0];
+    let end = dateRange[1];
+    let sub;
+    const fields = {date:1};
+    diagramTypes.forEach((t) => {
+      switch (t) {
+        case 'temp':
+          fields['parsed.tempf'] = 1;
+          fields['parsed.tempinf'] = 1;
+          break;
+        case 'sun':
+          fields['parsed.solarradiation'] = 1;
+          break;
+        case 'wind':
+          fields['parsed.windspeedmph'] = 1;
+          fields['parsed.windgustmph'] = 1;
+          break;
+        case 'rain':
+          fields['parsed.rainratein'] = 1;
+          break;
+        case 'barom':
+          fields['parsed.baromabsin'] = 1;
+          fields['parsed.baromrelin'] = 1;
+          break;
+        case 'humidity':
+          fields['parsed.humidity'] = 1;
+          fields['parsed.humidityin'] = 1;
+          fields['parsed.soilmoisture1'] = 1;
+          break;
+        default:
+      }
+    });
+    setLoading(true);
     if (dayjs(dateRange[0]).diff(dateRange[1], 'minute') < 18) {
-      end = +dayjs(dateRange[0]).subtract(20, 'minute')
-      setDateRange([dateRange[0], end])
+      end = +dayjs(dateRange[0]).subtract(20, 'minute');
+      setDateRange([dateRange[0], end]);
     }
     if (dayjs(start).diff(end, 'hour') > 4) {
-      sub = Meteor.subscribe('sensorAggregation', dayjs(start).toDate(), dayjs(end).toDate(), Math.floor(window.innerWidth / 3), () => {
-        setLoading(false)
-      })
+      sub = Meteor.subscribe('sensorAggregation', { start: dayjs(start).toDate(), end: dayjs(end).toDate(), buckets: Math.floor(window.innerWidth / 3), fields}, () => {
+        setLoading(false);
+      });
     } else {
-      sub = Meteor.subscribe('sensorReadings', dayjs(start).toDate(), dayjs(end).toDate(), () => {
-        setLoading(false)
-      })
+      sub = Meteor.subscribe('sensorReadings', { start: dayjs(start).toDate(), end: dayjs(end).toDate(), fields }, () => {
+        setLoading(false);
+      });
     }
-    if (dayjs(start).diff(end, 'hour') < 3) setMode('hour')
-    else if (dayjs(start).diff(end, 'day') < 3) setMode('day')
-    else if (dayjs(start).diff(end, 'week') < 3) setMode('week')
-    else if (dayjs(start).diff(end, 'month') < 3) setMode('month')
-    else setMode('year')
+    if (dayjs(start).diff(end, 'hour') < 3) setMode('hour');
+    else if (dayjs(start).diff(end, 'day') < 3) setMode('day');
+    else if (dayjs(start).diff(end, 'week') < 3) setMode('week');
+    else if (dayjs(start).diff(end, 'month') < 3) setMode('month');
+    else setMode('year');
     return () => {
-      sub.stop()
-    }
-  }, [dateRange])
+      sub.stop();
+    };
+  }, [dateRange, diagramTypes]);
 
   const handle = (type) => {
     return (evt) => {
       console.log(diagramTypes);
-      if (diagramTypes.includes(type)) setDiagramTypes(diagramTypes.filter((t) => t !== type))
-      else setDiagramTypes([...diagramTypes,type]);
-    }
-  }
+      if (diagramTypes.includes(type)) setDiagramTypes(diagramTypes.filter((t) => t !== type));
+      else setDiagramTypes([...diagramTypes, type]);
+    };
+  };
   const sensorReadings = useTracker(() => {
     const start = dayjs(dateRange[0]).toDate();
     const end = dayjs(dateRange[1]).toDate();
-    return SensorReadings.find({date:{ $lte: start, $gte: end }}, { sort: { date: -1 } }).fetch()
-  },[dateRange]);
+    return SensorReadings.find({ date: { $lte: start, $gte: end } }, { sort: { date: -1 } }).fetch();
+  }, [dateRange]);
   const diagramHeight = (window.innerHeight - 210) / diagramTypes.length;
+  console.log(sensorReadings)
   return (
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">
       <Box overflow="auto" padding={2}>
@@ -100,12 +130,12 @@ const History = ({ latest }) => {
               width={730}
               height={diagramHeight}
               data={sensorReadings.map((reading) => {
-                const sensor = { ...reading, ...reading.parsed }
+                const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
                   Außen: ((sensor.tempf - 32) * 5) / 9,
                   Innen: ((sensor.tempinf - 32) * 5) / 9,
-                }
+                };
               })}
               onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
               onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
@@ -137,13 +167,13 @@ const History = ({ latest }) => {
               width={730}
               height={diagramHeight}
               data={sensorReadings.map((reading) => {
-                const sensor = { ...reading, ...reading.parsed }
+                const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
                   Außen: sensor.humidity,
                   Innen: sensor.humidityin,
                   Boden: sensor.soilmoisture1,
-                }
+                };
               })}
               onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
               onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
@@ -153,12 +183,7 @@ const History = ({ latest }) => {
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
-              <YAxis
-                type="number"
-                unit="%"
-                domain={[0, 100]}
-                for
-              />
+              <YAxis type="number" unit="%" domain={[0, 100]} for />
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip formatter={(value) => value.toFixed(2) + '%'} labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')} />
               <Line type="monotone" dataKey="Außen" dot={false} stroke="#000088" />
@@ -174,12 +199,12 @@ const History = ({ latest }) => {
               width={730}
               height={diagramHeight}
               data={sensorReadings.map((reading) => {
-                const sensor = { ...reading, ...reading.parsed }
+                const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
                   Wind: sensor.windspeedmph * 1.609344, // in kmh
                   Böhen: sensor.windgustmph * 1.609344, // in kmh
-                }
+                };
               })}
               onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
               onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
@@ -193,8 +218,8 @@ const History = ({ latest }) => {
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
                 formatter={(value, name) => {
-                  if (name === 'Wind') return value.toFixed(2) + ' km/h'
-                  if (name === 'Böhen') return value.toFixed(2) + ' km/h'
+                  if (name === 'Wind') return value.toFixed(2) + ' km/h';
+                  if (name === 'Böhen') return value.toFixed(2) + ' km/h';
                 }}
                 labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
               />
@@ -210,11 +235,11 @@ const History = ({ latest }) => {
               width={730}
               height={diagramHeight}
               data={sensorReadings.map((reading) => {
-                const sensor = { ...reading, ...reading.parsed }
+                const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
                   Regen: sensor.rainratein,
-                }
+                };
               })}
               onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
               onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
@@ -228,7 +253,7 @@ const History = ({ latest }) => {
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
                 formatter={(value, name) => {
-                  if (name === 'Regen') return value.toFixed(2) + ' mm'
+                  if (name === 'Regen') return value.toFixed(2) + ' mm';
                 }}
                 labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
               />
@@ -243,11 +268,11 @@ const History = ({ latest }) => {
               width={730}
               height={diagramHeight}
               data={sensorReadings.map((reading) => {
-                const sensor = { ...reading, ...reading.parsed }
+                const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
-                  Sonnenschein: sensor.solarradiation / 100,
-                }
+                  Sonnenschein: sensor.solarradiation,
+                };
               })}
               onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
               onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
@@ -261,12 +286,52 @@ const History = ({ latest }) => {
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
                 formatter={(value, name) => {
-                  if (name === 'Sonnenschein') return (value * 100).toFixed(2) + ' Watt'
+                  if (name === 'Sonnenschein') return value + ' Watt/m²';
                 }}
                 labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
               />
               <Area type="monotone" yAxisId="left" dataKey="Sonnenschein" stackId="3" dot={false} stroke="#ff8800" fill="transparent" />
             </AreaChart>
+          </ResponsiveContainer>
+        )}
+        {diagramTypes.includes('barom') && (
+          <ResponsiveContainer width="100%" height={diagramHeight}>
+            <LineChart
+              syncId="anyId"
+              width={730}
+              height={diagramHeight}
+              data={sensorReadings.map((reading) => {
+                const sensor = { ...reading, ...reading.parsed };
+                return {
+                  name: +sensor.date,
+                  'Luftdruck Absolut': sensor.baromabsin,
+                  'Luftdruck Relativ': sensor.baromrelin,
+                };
+              })}
+              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
+              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
+              // eslint-disable-next-line react/jsx-no-bind
+              onMouseUp={() => zoom()}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
+              <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
+              <Legend verticalAlign="top" height={36} />
+              <YAxis 
+                type="number" 
+                domain={[(dataMin) => Math.round(dataMin) - 2, (dataMax) => Math.round(dataMax) + 2]}
+                for
+                width={25}
+                yAxisId="left" />
+              <CartesianGrid strokeDasharray="3 3" />
+              <Tooltip
+                formatter={(value, name) => {
+                  return value + ' hPa';
+                }}
+                labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
+              />
+              <Line type="monotone" yAxisId="left" dataKey="Luftdruck Absolut" stroke="#55aa55" dot={false} />
+              <Line type="monotone" yAxisId="left" dataKey="Luftdruck Relativ" stroke="#55aa00" dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         )}
       </Box>
@@ -287,6 +352,9 @@ const History = ({ latest }) => {
           </Button>
           <Button variant={diagramTypes.includes('sun') ? 'contained' : 'outlined'} onClick={handle('sun')}>
             Sonne
+          </Button>
+          <Button variant={diagramTypes.includes('barom') ? 'contained' : 'outlined'} onClick={handle('barom')}>
+            Druck
           </Button>
         </Box>
         <Box display="flex" flexDirection="row" justifyContent="space-between">
@@ -311,7 +379,7 @@ const History = ({ latest }) => {
         </Box>
       </Box>
     </Box>
-  )
-}
+  );
+};
 
-export default History
+export default History;

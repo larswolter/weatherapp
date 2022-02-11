@@ -11,7 +11,7 @@ export const App = () => {
   const [view, setView] = useState('Dashboard');
   
   useEffect(() => {
-    const sub = Meteor.subscribe('sensorReadings');
+    const sub = Meteor.subscribe('sensorReadings',{});
     return ()=>sub.stop();
   }, []);
   const latest = useTracker(() => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
 import { Grid, Box } from '@mui/material';
 import DashboardItem from './DashboardItem';
@@ -16,12 +16,20 @@ const degToCompass = (num) => {
 };
 
 const Dashboard = ({ latest }) => {
+  const [aggregated,setAggregated] = useState({});
+  useEffect(() => {
+    Meteor.call('aggregateSensorData',(err,res)=>{
+      setAggregated(res||err);
+    });
+  }, []);
+
+  
   const reading = latest?.parsed;
 
   const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
   const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
   const winddir = degToCompass(reading.winddir_avg10m);
-  console.log('WInd:',{dir:reading.winddir_avg10m,winddir,test:degToCompass(180),test2:degToCompass(0)})
+  console.log('Dashboard:',aggregated);
   return (
     <Box padding={2} overflow="auto" height="100%">
       <Grid container spacing={1}>
@@ -45,7 +53,7 @@ const Dashboard = ({ latest }) => {
         <DashboardItem
           src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
           value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
-          text="Sonnenstrahlung und UV Index"
+          text={["Sonnenstrahlung und UV Index",`${(aggregated.whDay/1000).toFixed(2)} kWH 24 Std.`,`${(aggregated.whMonth/1000).toFixed(2)} kWH ${aggregated.monthDays} Tage`,`${(aggregated.whYear/1000).toFixed(2)} kWH ${aggregated.yearDays} Tage`]}
         />
         <DashboardItem
           src={'/icons/rain.svg'}
