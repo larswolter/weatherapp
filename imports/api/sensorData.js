@@ -3,7 +3,7 @@ import { Meteor } from 'meteor/meteor';
 
 export const SensorReadings = new Mongo.Collection('sensorReadings');
 
-Meteor.isServer && SensorReadings._ensureIndex({ date: -1 });
+Meteor.isServer && SensorReadings.createIndex({ date: -1 });
 
 
 export const beaufort = [

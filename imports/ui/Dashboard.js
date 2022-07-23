@@ -16,20 +16,19 @@ const degToCompass = (num) => {
 };
 
 const Dashboard = ({ latest }) => {
-  const [aggregated,setAggregated] = useState({});
+  const [aggregated, setAggregated] = useState({});
   useEffect(() => {
-    Meteor.call('aggregateSensorData',(err,res)=>{
-      setAggregated(res||err);
+    Meteor.call('aggregateSensorData', (err, res) => {
+      setAggregated(res || err);
     });
   }, []);
 
-  
   const reading = latest?.parsed;
 
   const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
   const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
   const winddir = degToCompass(reading.winddir_avg10m);
-  console.log('Dashboard:',aggregated);
+  console.log('Dashboard:', aggregated);
   return (
     <Box padding={2} overflow="auto" height="100%">
       <Grid container spacing={1}>
@@ -53,12 +52,17 @@ const Dashboard = ({ latest }) => {
         <DashboardItem
           src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
           value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
-          text={["Sonnenstrahlung und UV Index",`${(aggregated.whDay/1000).toFixed(2)} kWH 24 Std.`,`${(aggregated.whMonth/1000).toFixed(2)} kWH ${aggregated.monthDays} Tage`,`${(aggregated.whYear/1000).toFixed(2)} kWH ${aggregated.yearDays} Tage`]}
+          text={[
+            'Sonnenstrahlung und UV Index',
+            `${(aggregated.dayWh / 1000).toFixed(2)} kWH 24 Std.`,
+            `${(aggregated.monthWh / 1000).toFixed(2)} kWH ${(aggregated.monthHours / 24).toFixed(1)} Tage`,
+            `${(aggregated.yearWh / 1000).toFixed(2)} kWH ${(aggregated.yearHours / 24).toFixed(1)} Tage`,
+          ]}
         />
         <DashboardItem
           src={'/icons/rain.svg'}
-          value={`${reading.hourlyrainin.toFixed(2)} mm `}
-          text={['Regenmenge pro Stunde', `Regen heute ${reading.dailyrainin.toFixed(2)} mm`]}
+          value={`${(reading.rainratein*100).toFixed(2)} mm `}
+          text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin*100).toFixed(2)} mm`]}
         />
       </Grid>
     </Box>

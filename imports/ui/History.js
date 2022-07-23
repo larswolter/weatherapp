@@ -3,7 +3,7 @@ import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorReadings } from '../api/sensorData';
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea, Area, AreaChart } from 'recharts';
-import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select } from '@mui/material';
+import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, useTheme } from '@mui/material';
 import dayjs from 'dayjs';
 import { Box } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
@@ -32,6 +32,10 @@ const History = ({ latest }) => {
   const [dateRange, setDateRange] = useState([+latest.date, +dayjs(latest.date).subtract(1, 'hour').toDate()]);
   const [refAreaLeft, setRefAreaLeft] = useState();
   const [refAreaRight, setRefAreaRight] = useState();
+
+  const theme = useTheme();
+  const darkMode = theme.palette.mode === 'dark';
+
   const changeMode = (event) => {
     setMode(event.target.value);
     setDateRange([dateRange[0], +dayjs(dateRange[0]).subtract(1, event.target.value)]);
@@ -53,7 +57,7 @@ const History = ({ latest }) => {
     const start = dateRange[0];
     let end = dateRange[1];
     let sub;
-    const fields = {date:1};
+    const fields = { date: 1 };
     diagramTypes.forEach((t) => {
       switch (t) {
         case 'temp':
@@ -88,9 +92,13 @@ const History = ({ latest }) => {
       setDateRange([dateRange[0], end]);
     }
     if (dayjs(start).diff(end, 'hour') > 4) {
-      sub = Meteor.subscribe('sensorAggregation', { start: dayjs(start).toDate(), end: dayjs(end).toDate(), buckets: Math.floor(window.innerWidth / 3), fields}, () => {
-        setLoading(false);
-      });
+      sub = Meteor.subscribe(
+        'sensorAggregation',
+        { start: dayjs(start).toDate(), end: dayjs(end).toDate(), buckets: Math.floor(window.innerWidth / 3), fields },
+        () => {
+          setLoading(false);
+        }
+      );
     } else {
       sub = Meteor.subscribe('sensorReadings', { start: dayjs(start).toDate(), end: dayjs(end).toDate(), fields }, () => {
         setLoading(false);
@@ -119,7 +127,15 @@ const History = ({ latest }) => {
     return SensorReadings.find({ date: { $lte: start, $gte: end } }, { sort: { date: -1 } }).fetch();
   }, [dateRange]);
   const diagramHeight = (window.innerHeight - 210) / diagramTypes.length;
-  console.log(sensorReadings)
+  console.log(sensorReadings);
+
+  const controlProps = {/* 
+    // is problematic on mobile devices with touch interactions
+    onMouseDown:(e) => setRefAreaLeft(e.activeLabel),
+    onMouseMove:(e) => refAreaLeft && setRefAreaRight(e.activeLabel),
+    onMouseUp:() => zoom(),
+    */
+  }
   return (
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">
       <Box overflow="auto" padding={2}>
@@ -137,24 +153,25 @@ const History = ({ latest }) => {
                   Innen: ((sensor.tempinf - 32) * 5) / 9,
                 };
               })}
-              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
-              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
-              // eslint-disable-next-line react/jsx-no-bind
-              onMouseUp={() => zoom()}
+              {...controlProps}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
               <YAxis
+                width={40}
                 type="number"
                 unit="°"
-                label={{ value: 'Temperatur', angle: -90, position: 'insideLeft' }}
                 domain={[(dataMin) => Math.round(dataMin) - 2, (dataMax) => Math.round(dataMax) + 2]}
                 for
               />
               <CartesianGrid strokeDasharray="3 3" />
-              <Tooltip formatter={(value) => value.toFixed(2) + '°'} labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')} />
-              <Line type="monotone" dataKey="Außen" dot={false} stroke="#000088" />
+              <Tooltip
+                contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
+                formatter={(value) => value.toFixed(2) + '°'}
+                labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
+              />
+              <Line type="monotone" dataKey="Außen" dot={false} stroke={darkMode ? '#8888ff' : '#000088'} />
               <Line type="monotone" dataKey="Innen" dot={false} stroke="#ff8800" />
               {refAreaLeft && refAreaRight ? <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.3} /> : null}
             </LineChart>
@@ -175,18 +192,19 @@ const History = ({ latest }) => {
                   Boden: sensor.soilmoisture1,
                 };
               })}
-              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
-              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
-              // eslint-disable-next-line react/jsx-no-bind
-              onMouseUp={() => zoom()}
+              {...controlProps}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
-              <YAxis type="number" unit="%" domain={[0, 100]} for />
+              <YAxis width={40} type="number" domain={[0, 100]} for />
               <CartesianGrid strokeDasharray="3 3" />
-              <Tooltip formatter={(value) => value.toFixed(2) + '%'} labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')} />
-              <Line type="monotone" dataKey="Außen" dot={false} stroke="#000088" />
+              <Tooltip
+                contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
+                formatter={(value) => value.toFixed(2) + '%'}
+                labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
+              />
+              <Line type="monotone" dataKey="Außen" dot={false} stroke={darkMode ? '#8888ff' : '#000088'} />
               <Line type="monotone" dataKey="Innen" dot={false} stroke="#ff8800" />
               <Line type="monotone" dataKey="Boden" dot={false} stroke="#448844" />
             </LineChart>
@@ -206,24 +224,22 @@ const History = ({ latest }) => {
                   Böhen: sensor.windgustmph * 1.609344, // in kmh
                 };
               })}
-              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
-              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
-              // eslint-disable-next-line react/jsx-no-bind
-              onMouseUp={() => zoom()}
+              {...controlProps}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
-              <YAxis type="number" width={25} allowDecimals={false} for yAxisId="left" />
+              <YAxis type="number" width={40} allowDecimals={false} for yAxisId="left" />
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
+                contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
                 formatter={(value, name) => {
                   if (name === 'Wind') return value.toFixed(2) + ' km/h';
                   if (name === 'Böhen') return value.toFixed(2) + ' km/h';
                 }}
                 labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
               />
-              <Area type="monotone" yAxisId="left" dataKey="Wind" stackId="2" dot={false} stroke="rgba(200,200,200,1)" fill="transparent" />
+              <Area type="monotone" yAxisId="left" dataKey="Wind" stackId="1" dot={false} stroke="rgba(200,200,200,1)" fill="transparent" />
               <Area type="monotone" yAxisId="left" dataKey="Böhen" stackId="2" dot={false} stroke="rgba(200,200,200,0.5)" fill="rgba(200,200,200,0.2)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -238,26 +254,24 @@ const History = ({ latest }) => {
                 const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
-                  Regen: sensor.rainratein,
+                  Regen: sensor.rainratein * 100,
                 };
               })}
-              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
-              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
-              // eslint-disable-next-line react/jsx-no-bind
-              onMouseUp={() => zoom()}
+              {...controlProps}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
-              <YAxis type="number" width={35} allowDecimals={true} for yAxisId="left" />
+              <YAxis type="number" width={40} allowDecimals={true} for yAxisId="left" />
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
+                contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
                 formatter={(value, name) => {
                   if (name === 'Regen') return value.toFixed(2) + ' mm';
                 }}
                 labelFormatter={(name) => dayjs(name).format('DD.MM.YYYY HH:mm:ss')}
               />
-              <Area type="monotone" yAxisId="left" dataKey="Regen" stackId="1" dot={false} stroke="#000088" fill="transparent" />
+              <Area type="monotone" yAxisId="left" dataKey="Regen" stackId="1" dot={false} stroke={darkMode ? '#8888ff' : '#000088'} fill="transparent" />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -274,17 +288,15 @@ const History = ({ latest }) => {
                   Sonnenschein: sensor.solarradiation,
                 };
               })}
-              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
-              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
-              // eslint-disable-next-line react/jsx-no-bind
-              onMouseUp={() => zoom()}
+              {...controlProps}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
-              <YAxis type="number" width={25} allowDecimals={false} for yAxisId="left" />
+              <YAxis type="number" width={40} allowDecimals={false} for yAxisId="left" />
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
+                contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
                 formatter={(value, name) => {
                   if (name === 'Sonnenschein') return value + ' Watt/m²';
                 }}
@@ -308,22 +320,21 @@ const History = ({ latest }) => {
                   'Luftdruck Relativ': sensor.baromrelin,
                 };
               })}
-              onMouseDown={(e) => setRefAreaLeft(e.activeLabel)}
-              onMouseMove={(e) => refAreaLeft && setRefAreaRight(e.activeLabel)}
-              // eslint-disable-next-line react/jsx-no-bind
-              onMouseUp={() => zoom()}
+              {...controlProps}
               margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="name" tickFormatter={dateFormater(mode)} />
               <Legend verticalAlign="top" height={36} />
-              <YAxis 
-                type="number" 
+              <YAxis
+                width={40}
+                type="number"
                 domain={[(dataMin) => Math.round(dataMin) - 2, (dataMax) => Math.round(dataMax) + 2]}
                 for
-                width={25}
-                yAxisId="left" />
+                yAxisId="left"
+              />
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip
+                contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
                 formatter={(value, name) => {
                   return value + ' hPa';
                 }}

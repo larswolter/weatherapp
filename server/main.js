@@ -23,79 +23,49 @@ Meteor.methods({
     const oldest = SensorReadings.findOne({}, { sort: { date: 1 } });
     const newest = SensorReadings.findOne({}, { sort: { date: -1 } });
     const start = newest.date;
-    const maxDays = dayjs(start).clone().diff(oldest.date, 'days');
-    const day = await SensorReadings.rawCollection().aggregate([
-      {
-        $match: { date: { $lt: start, $gt: dayjs(start).clone().subtract(1, 'day').toDate() } },
-      },
-      {
-        $bucketAuto: {
-          groupBy: '$date',
-          buckets: 24,
-          output: {
-            wh: { $avg: '$parsed.solarradiation' },
+    const maxHours = dayjs(start).clone().diff(oldest.date, 'hours');
+    const elements = [
+      { label: 'day', hours: 24 },
+      { label: 'month', hours: 30 * 24 },
+      { label: 'year', hours: 365 * 24 },
+    ];
+    const whHours = {};
+    for(const element of elements) {
+      const result = await SensorReadings.rawCollection()
+        .aggregate([
+          {
+            $match: {
+              date: {
+                $lt: start,
+                $gt: dayjs(start).clone().subtract(Math.min(maxHours, element.hours), 'hours').toDate(),
+              },
+            },
           },
-        },
-      },
-      {
-        $group: {
-          _id: 1,
-          whDay: { $sum: '$wh' },
-        },
-      },
-    ]).toArray();
-    const month = await SensorReadings.rawCollection().aggregate([
-      {
-        $match: { date: { $lt: start, $gt: dayjs(start).clone().subtract(Math.min(maxDays, 30), 'day').toDate() } },
-      },
-      {
-        $bucketAuto: {
-          groupBy: '$date',
-          buckets: 24 * Math.min(maxDays, 365),
-          output: {
-            wh: { $avg: '$parsed.solarradiation' },
+          {
+            $bucketAuto: {
+              groupBy: '$date',
+              buckets: Math.min(maxHours, element.hours),
+              output: {
+                wh: { $avg: '$parsed.solarradiation' },
+              },
+            },
           },
-        },
-      },
-      {
-        $group: {
-          _id: 1,
-          whMonth: { $sum: '$wh' },
-        },
-      },
-    ]).toArray();
-    const year = await SensorReadings.rawCollection().aggregate([
-      {
-        $match: { date: { $lt: start, $gt: dayjs(start).clone().subtract(Math.min(maxDays, 365), 'day').toDate() } },
-      },
-      {
-        $bucketAuto: {
-          groupBy: '$date',
-          buckets: 24 * Math.min(maxDays, 365),
-          output: {
-            wh: { $avg: '$parsed.solarradiation' },
+          {
+            $group: {
+              _id: 1,
+              wh: { $sum: '$wh' },
+            },
           },
-        },
-      },
-      {
-        $group: {
-          _id: 1,
-          whYear: { $sum: '$wh' },
-        },
-      },
-    ]).toArray();
-    console.log({day,month,year})
-    return {
-      ...day[0],
-      ...month[0],
-      ...year[0],
-      monthDays: Math.min(maxDays, 30),
-      yearDays: Math.min(maxDays, 365)
+        ])
+        .toArray();
+      whHours[element.label+'Wh'] = result[0].wh;
+      whHours[element.label+'Hours'] = Math.min(maxHours, element.hours);
     }
+    return whHours;
   },
 });
 
-Meteor.publish('sensorReadings', function ({start, end, fields}) {
+Meteor.publish('sensorReadings', function ({ start, end, fields }) {
   if (!this.userId) throw new Meteor.Error(403, 'access denied');
   //check(start, Match.Maybe(Date));
   //check(end, Match.Maybe(Date));
@@ -104,11 +74,11 @@ Meteor.publish('sensorReadings', function ({start, end, fields}) {
   else if (start) search.date = { $lte: start };
   else if (end) search.date = { $gte: end };
   else return SensorReadings.find(search, { sort: { date: -1 }, limit: 1 });
-  console.log('sensor readings', {search, fields});
+  console.log('sensor readings', { search, fields });
   return SensorReadings.find(search, { fields, sort: { date: -1 }, limit: 800 });
 });
 
-Meteor.publish('sensorAggregation', function ({start, end, buckets, fields}) {
+Meteor.publish('sensorAggregation', function ({ start, end, buckets, fields }) {
   const search = {};
   if (start && end) search.date = { $lte: start, $gte: end };
   else if (start) search.date = { $lte: start };
