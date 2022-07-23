@@ -3,8 +3,6 @@ import { Meteor } from 'meteor/meteor';
 
 export const SensorReadings = new Mongo.Collection('sensorReadings');
 
-Meteor.isServer && SensorReadings.createIndex({ date: -1 });
-
 
 export const beaufort = [
   { beaufort: 0, mph: 0, text: 'Windstille' },

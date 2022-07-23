@@ -4,6 +4,10 @@ import { WebApp } from 'meteor/webapp';
 import { SensorReadings } from '../imports/api/sensorData';
 import './ssr';
 
+SensorReadings.createIndex({ date: -1 });
+SensorReadings.createIndex({ date: 1 });
+
+
 Meteor.startup(() => {
   console.log(
     `Starting Weatherapp ${process.env.ACCESS_TOKEN ? 'using access token' : 'without access token'} and ${
@@ -56,7 +60,7 @@ Meteor.methods({
               wh: { $sum: '$wh' },
             },
           },
-        ])
+        ],{allowDiskUse:true})
         .toArray();
       whHours[element.label+'Wh'] = result[0].wh;
       whHours[element.label+'Hours'] = Math.min(maxHours, element.hours);
