@@ -61,9 +61,20 @@ const Dashboard = ({ latest }) => {
         />
         <DashboardItem
           src={'/icons/rain.svg'}
-          value={`${(reading.rainratein*100).toFixed(2)} mm `}
-          text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin*100).toFixed(2)} mm`]}
+          value={`${(reading.rainratein * 100).toFixed(2)} mm `}
+          text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 100).toFixed(2)} mm`]}
         />
+        {reading.phases && (
+          <DashboardItem
+            src={'/icons/uv-index-1.svg'}
+            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W `}
+            text={[
+              'Solarmodule',
+              ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),
+              reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',
+            ]}
+          />
+        )}
       </Grid>
     </Box>
   );

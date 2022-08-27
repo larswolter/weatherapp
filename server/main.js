@@ -1,12 +1,14 @@
 import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
-import { SensorReadings } from '../imports/api/sensorData';
+import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
 import './ssr';
 
 SensorReadings.createIndex({ date: -1 });
 SensorReadings.createIndex({ date: 1 });
 
+SolarReadings.createIndex({ date: -1 });
+SolarReadings.createIndex({ date: 1 });
 
 Meteor.startup(() => {
   console.log(
@@ -34,36 +36,39 @@ Meteor.methods({
       { label: 'year', hours: 365 * 24 },
     ];
     const whHours = {};
-    for(const element of elements) {
+    for (const element of elements) {
       const result = await SensorReadings.rawCollection()
-        .aggregate([
-          {
-            $match: {
-              date: {
-                $lt: start,
-                $gt: dayjs(start).clone().subtract(Math.min(maxHours, element.hours), 'hours').toDate(),
+        .aggregate(
+          [
+            {
+              $match: {
+                date: {
+                  $lt: start,
+                  $gt: dayjs(start).clone().subtract(Math.min(maxHours, element.hours), 'hours').toDate(),
+                },
               },
             },
-          },
-          {
-            $bucketAuto: {
-              groupBy: '$date',
-              buckets: Math.min(maxHours, element.hours),
-              output: {
-                wh: { $avg: '$parsed.solarradiation' },
+            {
+              $bucketAuto: {
+                groupBy: '$date',
+                buckets: Math.min(maxHours, element.hours),
+                output: {
+                  wh: { $avg: '$parsed.solarradiation' },
+                },
               },
             },
-          },
-          {
-            $group: {
-              _id: 1,
-              wh: { $sum: '$wh' },
+            {
+              $group: {
+                _id: 1,
+                wh: { $sum: '$wh' },
+              },
             },
-          },
-        ],{allowDiskUse:true})
+          ],
+          { allowDiskUse: true }
+        )
         .toArray();
-      whHours[element.label+'Wh'] = result[0].wh;
-      whHours[element.label+'Hours'] = Math.min(maxHours, element.hours);
+      whHours[element.label + 'Wh'] = result[0].wh;
+      whHours[element.label + 'Hours'] = Math.min(maxHours, element.hours);
     }
     return whHours;
   },
@@ -80,6 +85,19 @@ Meteor.publish('sensorReadings', function ({ start, end, fields }) {
   else return SensorReadings.find(search, { sort: { date: -1 }, limit: 1 });
   console.log('sensor readings', { search, fields });
   return SensorReadings.find(search, { fields, sort: { date: -1 }, limit: 800 });
+});
+
+Meteor.publish('solarReadings', function ({ start, end, fields }) {
+  if (!this.userId) throw new Meteor.Error(403, 'access denied');
+  //check(start, Match.Maybe(Date));
+  //check(end, Match.Maybe(Date));
+  const search = {};
+  if (start && end) search.date = { $lte: start, $gte: end };
+  else if (start) search.date = { $lte: start };
+  else if (end) search.date = { $gte: end };
+  else return SolarReadings.find(search, { sort: { date: -1 }, limit: 1 });
+  console.log('Solar readings', { search, fields });
+  return SolarReadings.find(search, { fields, sort: { date: -1 }, limit: 800 });
 });
 
 Meteor.publish('sensorAggregation', function ({ start, end, buckets, fields }) {
@@ -118,6 +136,46 @@ Meteor.publish('sensorAggregation', function ({ start, end, buckets, fields }) {
     .catch((err) => {
       throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
     });
+});
+
+WebApp.connectHandlers.use('/solarinput', (request, response) => {
+  try {
+    if (process.env.SUBMIT_TOKEN && process.env.SUBMIT_TOKEN !== request.query.token) {
+      response.writeHead(403);
+      response.end();
+      console.log(`Blocked sensor reading submitions with token ${request.query.token}`);
+      return;
+    }
+    let raw = '';
+    request.on('data', (chunk) => {
+      raw += chunk.toString();
+    });
+    request.on(
+      'end',
+      Meteor.bindEnvironment(async () => {
+        try {
+          let parsed;
+          try {
+            parsed = JSON.parse(raw);
+          } catch (err) {
+            parsed = { error: err.message };
+          }
+          SolarReadings.insert({ date: new Date(), parsed, raw });
+
+          response.writeHead(200);
+          response.end();
+        } catch (err) {
+          console.log('error on handline solarinput', err.message);
+          response.writeHead(500);
+          response.end();
+        }
+      })
+    );
+  } catch (err) {
+    console.log('error on solarinput', err.message);
+    response.writeHead(500);
+    response.end();
+  }
 });
 
 WebApp.connectHandlers.use('/weatherinput', (request, response) => {
