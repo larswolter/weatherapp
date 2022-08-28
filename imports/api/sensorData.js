@@ -2,6 +2,7 @@ import { Mongo } from 'meteor/mongo';
 import { Meteor } from 'meteor/meteor';
 
 export const SensorReadings = new Mongo.Collection('sensorReadings');
+export const SolarReadings = new Mongo.Collection('solarReadings');
 
 
 export const beaufort = [
