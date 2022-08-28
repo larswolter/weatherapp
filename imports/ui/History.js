@@ -72,7 +72,7 @@ const History = ({ latest }) => {
           fields['parsed.windgustmph'] = 1;
           break;
         case 'rain':
-          fields['parsed.rainratein'] = 1;
+          fields['parsed.hourlyrainin'] = 1;
           break;
         case 'barom':
           fields['parsed.baromabsin'] = 1;
@@ -254,7 +254,7 @@ const History = ({ latest }) => {
                 const sensor = { ...reading, ...reading.parsed };
                 return {
                   name: +sensor.date,
-                  Regen: sensor.rainratein * 100,
+                  Regen: sensor.hourlyrainin * 100,
                 };
               })}
               {...controlProps}

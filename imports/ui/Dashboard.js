@@ -61,7 +61,7 @@ const Dashboard = ({ latest }) => {
         />
         <DashboardItem
           src={'/icons/rain.svg'}
-          value={`${(reading.rainratein * 100).toFixed(2)} mm `}
+          value={`${(reading.hourlyrainin * 100).toFixed(2)} mm `}
           text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 100).toFixed(2)} mm`]}
         />
         {reading.phases && (

@@ -119,7 +119,7 @@ Meteor.publish('sensorAggregation', function ({ start, end, buckets, fields }) {
             baromrelin: { $avg: '$parsed.baromrelin' },
             humidityin: { $avg: '$parsed.humidityin' },
             humidity: { $avg: '$parsed.humidity' },
-            rainratein: { $avg: '$parsed.rainratein' },
+            hourlyrainin: { $max: '$parsed.hourlyrainin' },
             windspeedmph: { $avg: '$parsed.windspeedmph' },
             soilmoisture1: { $avg: '$parsed.soilmoisture1' },
             solarradiation: { $avg: '$parsed.solarradiation' },
