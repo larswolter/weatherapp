@@ -19,8 +19,8 @@ export const App = () => {
     };
   }, []);
   const latest = useTracker(() => {
-    const sensor = SensorReadings.findOne({}, { sort: { date: -1 } });
-    const solar = SolarReadings.findOne({}, { sort: { date: -1 } });
+    const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
+    const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
     return {
       date: sensor.date,
       parsed: {
@@ -36,6 +36,12 @@ export const App = () => {
       <Box textAlign="center">
         <LinearProgress variant="indeterminate" />
         Lade Wetterdaten
+      </Box>
+    );
+  if (!latest.date)
+    return (
+      <Box textAlign="center">        
+        Keine Wetterdaten verfügbar
       </Box>
     );
 
