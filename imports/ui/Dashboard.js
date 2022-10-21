@@ -67,7 +67,7 @@ const Dashboard = ({ latest }) => {
         {reading.phases && (
           <DashboardItem
             src={'/icons/uv-index-1.svg'}
-            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W `}
+            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W (${dayjs.utc(reading.time, 'YYYY-MM-DD HH:mm:ss').local().format('DD.MM. HH:mm')})`}
             text={[
               'Solarmodule',
               ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),
@@ -80,34 +80,4 @@ const Dashboard = ({ latest }) => {
   );
 };
 
-/*
-{
-  "PASSKEY": "4ADCEC4AFD5914CBCFF65D6BB0BA8868",
-  "stationtype": "EasyWeatherV1.5.2",
-  "dateutc": "2021-07-13+21:22:09",
-  "tempinf": "75.0",
-  "humidityin": "74",
-  "baromrelin": "29.770",
-  "baromabsin": "29.457",
-  "tempf": "71.8",
-  "humidity": "82",
-  "winddir": "333",
-  "winddir_avg10m": "324",
-  "windspeedmph": "0.2",
-  "windspdmph_avg10m": "0.4",
-  "windgustmph": "3.4",
-  "maxdailygust": "11.windspdmph_avg10m4",
-  "rainratein": "0.071",
-  "eventrainin": "0.244",
-  "hourlyrainin": "0.138",
-  "dailyrainin": "0.244",
-  "weeklyrainin": "0.350",
-  "monthlyrainin": "2.339",
-  "yearlyrainin": "3.984",
-  "solarradiation": "0.00",
-  "uv": "0",
-  "soilmoisture1": "10",
-  "model": "WS2350"
-}
-*/
 export default Dashboard;

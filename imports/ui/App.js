@@ -6,6 +6,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/ShowChart';
 import Dashboard from './Dashboard';
 import History from './History';
+import Stats from './Stats';
 
 export const App = () => {
   const [view, setView] = useState('Dashboard');
@@ -60,7 +61,7 @@ export const App = () => {
       }}
     >
       <Box flexBasis="100%" overflow="hidden">
-        {view === 'Dashboard' ? <Dashboard latest={latest} /> : latest && <History latest={latest} />}
+        {view === 'Dashboard' ? <Dashboard latest={latest} /> : latest && <Stats latest={latest} />}
       </Box>
       <BottomNavigation
         value={view}

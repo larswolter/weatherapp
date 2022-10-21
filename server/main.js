@@ -217,3 +217,159 @@ Meteor.startup(() => {
     }
   });
 });
+
+const config = {
+  hour: {
+    temp: {
+      transform:(reading)=>{
+        return {
+          ...reading,
+          tempf: ((reading.tempf- 32) * 5) / 9,
+          tempinf: ((reading.tempinf- 32) * 5) / 9
+        }
+      },
+      col: SensorReadings,
+      title: '',
+      lines: [
+        { key: 'tempinf', sel: '$avg', stroke: '#ff0000' },
+        { key: 'tempf', sel: '$avg', stroke: '#00ff00' },
+      ],
+    },
+    humidity: {
+      col: SensorReadings,
+      title: '',
+      lines: [
+        { key: 'humidityin', sel: '$avg', stroke: '#ff0000' },
+        { key: 'humidity', sel: '$avg', stroke: '#00ff00' },
+        { key: 'soilmoisture1', sel: '$avg', stroke: '#0000ff' },
+      ],
+    },
+    wind: {
+      col: SensorReadings,
+      title: '',
+      lines: [
+        { key: 'windspeedmph', sel: '$avg', stroke: '#ff0000' },
+        { key: 'windgustmph', sel: '$avg', stroke: '#00ff00' },
+      ],
+    },
+    barom: {
+      col: SensorReadings,
+      title: '',
+      lines: [
+        { key: 'baromabsin', sel: '$avg', stroke: '#ff0000' },
+        { key: 'baromrelin', sel: '$avg', stroke: '#00ff00' },
+      ],
+    },
+    rain: {
+      col: SensorReadings,
+      title: '',
+      lines: [{ key: 'rainrate', sel: '$avg', stroke: '#ff0000' }],
+    },
+    sun: {
+      col: SensorReadings,
+      title: '',
+      lines: [{ key: 'solarradiation', sel: '$avg', stroke: '#ff0000' }],
+    },
+    solar: {
+      col: SolarReadings,
+      title: '',
+      lines: [
+        { key: 'reading.strings.0.power', sel: '$max', stroke: '#ff0000' },
+        { key: 'reading.strings.1.power', sel: '$max', stroke: '#00ff00' },
+      ],
+    },
+  },
+};
+config.day = {
+  buckets: 24,
+  temp: config.hour.temp,
+  humidity: config.hour.humidity,
+  wind: config.hour.wind,
+  barom: config.hour.barom,
+  rain: config.hour.rain,
+  sun: config.hour.sun,
+};
+config.week = {
+  buckets: 24 * 7,
+  temp: config.hour.temp,
+  humidity: config.hour.humidity,
+  wind: config.hour.wind,
+  barom: config.hour.barom,
+  rain: config.hour.rain,
+  sun: config.hour.sun,
+};
+config.month = {
+  buckets: 30,
+  temp: config.hour.temp,
+  humidity: config.hour.humidity,
+  wind: config.hour.wind,
+  barom: config.hour.barom,
+  rain: config.hour.rain,
+  sun: config.hour.sun,
+};
+config.year = {
+  buckets: 365,
+  temp: config.hour.temp,
+  humidity: config.hour.humidity,
+  wind: config.hour.wind,
+  barom: config.hour.barom,
+  rain: config.hour.rain,
+  sun: config.hour.sun,
+};
+
+Meteor.publish('sensorStats', function ({ source, offset, scale }) {
+  const latestEntry = SensorReadings.findOne({},{sort:{date:-1}});
+  const latest = dayjs(latestEntry.date);
+  
+  const search = {
+    date: {
+      $lt: latest.clone().subtract(offset, scale).startOf(scale).toDate(),
+      $gt: latest.clone()
+        .subtract(offset + 1, scale)
+        .startOf(scale)
+        .toDate(),
+    },
+  };
+  const fields = {date:1};
+  const output = {date:{$first:'$date'}};
+  const transform = config[scale][source].transform;
+  const buckets = config[scale].buckets;
+  config[scale][source].lines.forEach((l) => {
+    fields['parsed.' +l.key] = 1;
+    output[l.key] = { [l.sel]: '$parsed.' + l.key };
+  });
+  this.added('sensorInfos', source + scale, { ...config[scale][source], col: null, _id: source + scale, source });
+
+  let cursor;
+  console.log({search,source,buckets})
+  if (scale === 'hour') {
+    SensorReadings.find(search, { sort: { date: 1 }, fields }).forEach((reading) => {
+      const values = transform?transform(reading.parsed):reading.parsed;
+      this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source });
+    });
+    this.ready();
+  } else {
+    let results=0;
+    SensorReadings.rawCollection()
+      .aggregate([
+        { $match: search },
+        {
+          $bucketAuto: {
+            groupBy: '$date',
+            buckets,
+            output,
+          },
+        },
+      ])
+      .forEach((reading) => {
+        const values = transform?transform(reading):reading;
+        this.added('sensorReadings', source + reading._id.min, { ...values, _id: source + reading._id.min, source });
+      results+=1;
+      })
+      .finally(() => this.ready())
+      .catch((err) => {
+        throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
+      });
+      console.log(results)
+  }
+});
