@@ -80,70 +80,6 @@ Meteor.publish('latestData', function () {
 });
 
 
-Meteor.publish('sensorReadings', function ({ start, end, fields }) {
-  if (!this.userId) throw new Meteor.Error(403, 'access denied');
-  //check(start, Match.Maybe(Date));
-  //check(end, Match.Maybe(Date));
-  const search = {};
-  if (start && end) search.date = { $lte: start, $gte: end };
-  else if (start) search.date = { $lte: start };
-  else if (end) search.date = { $gte: end };
-  else return SensorReadings.find(search, { sort: { date: -1 }, limit: 1 });
-  console.log('sensor readings', { search, fields });
-  return SensorReadings.find(search, { fields, sort: { date: -1 }, limit: 800 });
-});
-
-Meteor.publish('solarReadings', function ({ start, end, fields }) {
-  if (!this.userId) throw new Meteor.Error(403, 'access denied');
-  //check(start, Match.Maybe(Date));
-  //check(end, Match.Maybe(Date));
-  const search = {};
-  if (start && end) search.date = { $lte: start, $gte: end };
-  else if (start) search.date = { $lte: start };
-  else if (end) search.date = { $gte: end };
-  else return SolarReadings.find(search, { sort: { date: -1 }, limit: 1 });
-  console.log('Solar readings', { search, fields });
-  return SolarReadings.find(search, { fields, sort: { date: -1 }, limit: 800 });
-});
-
-Meteor.publish('sensorAggregation', function ({ start, end, buckets, fields }) {
-  const search = {};
-  if (start && end) search.date = { $lte: start, $gte: end };
-  else if (start) search.date = { $lte: start };
-  else if (end) search.date = { $gte: end };
-  SensorReadings.rawCollection()
-    .aggregate([
-      { $match: search },
-      {
-        $bucketAuto: {
-          groupBy: '$date',
-          buckets,
-          output: {
-            tempinf: { $avg: '$parsed.tempinf' },
-            tempf: { $avg: '$parsed.tempf' },
-            baromabsin: { $avg: '$parsed.baromabsin' },
-            baromrelin: { $avg: '$parsed.baromrelin' },
-            humidityin: { $avg: '$parsed.humidityin' },
-            humidity: { $avg: '$parsed.humidity' },
-            hourlyrainin: { $max: '$parsed.hourlyrainin' },
-            windspeedmph: { $avg: '$parsed.windspeedmph' },
-            soilmoisture1: { $avg: '$parsed.soilmoisture1' },
-            solarradiation: { $avg: '$parsed.solarradiation' },
-            windgustmph: { $max: '$parsed.windgustmph' },
-            date: { $first: '$date' },
-          },
-        },
-      },
-    ])
-    .forEach((doc) => {
-      this.added('sensorReadings', +doc._id.min + '', { ...doc, _id: doc._id.min + '' });
-    })
-    .finally(() => this.ready())
-    .catch((err) => {
-      throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
-    });
-});
-
 WebApp.connectHandlers.use('/solarinput', (request, response) => {
   try {
     if (process.env.SUBMIT_TOKEN && process.env.SUBMIT_TOKEN !== request.query.token) {
@@ -236,15 +172,17 @@ const config = {
         };
       },
       col: SensorReadings,
+      unit:'°',
       title: '',
       lines: [
-        { key: 'tempinf', sel: '$avg', stroke: '#ff0000' },
-        { key: 'tempf', sel: '$avg', stroke: '#00ff00' },
+        { key:'Innen', sourceKey: 'tempinf', sel: '$avg', stroke: '#ff0000' },
+        { key:'Außen', sourceKey: 'tempf', sel: '$avg', stroke: '#00ff00' },
       ],
     },
     humidity: {
       col: SensorReadings,
       title: '',
+      unit:'%',
       lines: [
         { key: 'humidityin', sel: '$avg', stroke: '#ff0000' },
         { key: 'humidity', sel: '$avg', stroke: '#00ff00' },
@@ -254,6 +192,7 @@ const config = {
     wind: {
       col: SensorReadings,
       title: '',
+      unit:'km/h',
       lines: [
         { key: 'windspeedmph', sel: '$avg', stroke: '#ff0000' },
         { key: 'windgustmph', sel: '$avg', stroke: '#00ff00' },
@@ -262,6 +201,8 @@ const config = {
     barom: {
       col: SensorReadings,
       title: '',
+      unit:'hpa',
+
       lines: [
         { key: 'baromabsin', sel: '$avg', stroke: '#ff0000' },
         { key: 'baromrelin', sel: '$avg', stroke: '#00ff00' },
@@ -270,11 +211,14 @@ const config = {
     rain: {
       col: SensorReadings,
       title: '',
+      unit:'l/m²',
+
       lines: [{ key: 'rainrate', sel: '$avg', stroke: '#ff0000' }],
     },
     sun: {
       col: SensorReadings,
       title: '',
+      unit:'W',
       lines: [{ key: 'solarradiation', sel: '$avg', stroke: '#ff0000' }],
     },
     solar: {
@@ -286,6 +230,7 @@ const config = {
         }
       },
       col: SolarReadings,
+      unit: 'W',
       title: '',
       lines: [
         { key: 'string0', sourceKey: 'strings.power', sel: '$min', stroke: '#ff0000' },
@@ -360,8 +305,6 @@ Meteor.publish('sensorStats', function ({ source, offset, scale }) {
   });
   this.added('sensorInfos', source + scale, { ...config[scale][source], col: null, _id: source + scale, source });
 
-  let cursor;
-  let results = 0;
   collection
     .rawCollection()
     .aggregate([
@@ -377,12 +320,9 @@ Meteor.publish('sensorStats', function ({ source, offset, scale }) {
     .forEach((reading) => {
       const values = transform ? transform(reading) : reading;
       this.added('sensorReadings', source + reading._id.min, { ...values, _id: source + reading._id.min, source });
-      if(results===0) console.log(`output ${source}`,reading);
-      results += 1;
     })
     .finally(() => {
       this.ready();
-      console.log(`published ${results} items for ${source}`);
     })
     .catch((err) => {
       throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);

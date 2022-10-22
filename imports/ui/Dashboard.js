@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
-import { Grid, Box } from '@mui/material';
+import { Grid, Box, Typography } from '@mui/material';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
@@ -39,6 +39,7 @@ const Dashboard = () => {
   });
 
   if (!latest) return <LinearProgress variant="indeterminate" />;
+  if (!latest.date) return <Typography variant="h5">Keine Wetterdaten</Typography>;
 
   const reading = latest?.parsed;
 
@@ -67,31 +68,22 @@ const Dashboard = () => {
           text={['Windböhen', `Stärkste Böhe ${(reading.maxdailygust * 1.609344).toFixed(2)} km/h`]}
         />
         <DashboardItem
-          src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
-          value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
-          text={[
-            'Sonnenstrahlung und UV Index'
-          ]}
-        />
-        <DashboardItem
           src={'/icons/rain.svg'}
           value={`${(reading.hourlyrainin * 100).toFixed(2)} mm `}
           text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 100).toFixed(2)} mm`]}
         />
-        {reading.phases && (
           <DashboardItem
-            src={'/icons/uv-index-1.svg'}
-            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W (${dayjs
-              .utc(reading.time, 'YYYY-MM-DD HH:mm:ss')
-              .local()
-              .format('DD.MM. HH:mm')})`}
+            src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
+            value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
             text={[
-              'Solarmodule',
+              `Solarmodule (${dayjs
+                .utc(reading.time, 'YYYY-MM-DD HH:mm:ss')
+                .local()
+                .format('DD.MM. HH:mm')})`,
               ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),
               reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',
             ]}
           />
-        )}
       </Grid>
     </Box>
   );

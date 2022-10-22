@@ -52,7 +52,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight }) => {
       <LineChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
         <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
         <Legend verticalAlign="top" height={36} />
-        <YAxis width={40} type="number" unit="°" domain={[(dataMin) => Math.round(dataMin), (dataMax) => Math.round(dataMax)]} for />
+        <YAxis width={40} type="number" unit={sensorInfos.unit} for />
         <CartesianGrid strokeDasharray="3 3" />
         <Tooltip
           contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
