@@ -71,6 +71,9 @@ const Stats = ({ latest }) => {
           <Button variant={sources.includes('barom') ? 'contained' : 'outlined'} onClick={handle('barom')}>
             Druck
           </Button>
+          <Button variant={sources.includes('solar') ? 'contained' : 'outlined'} onClick={handle('solar')}>
+            Solar
+          </Button>
         </Box>
         <Box display="flex" flexDirection="row" justifyContent="space-between">
           <Button>

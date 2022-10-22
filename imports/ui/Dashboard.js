@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
 import { Grid, Box } from '@mui/material';
+import { useTracker } from 'meteor/react-meteor-data';
+import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -15,13 +17,28 @@ const degToCompass = (num) => {
   return arr[Math.floor(val) % 16];
 };
 
-const Dashboard = ({ latest }) => {
+const Dashboard = () => {
   const [aggregated, setAggregated] = useState({});
+
   useEffect(() => {
-    Meteor.call('aggregateSensorData', (err, res) => {
-      setAggregated(res || err);
-    });
+    const sup = Meteor.subscribe('latestData');
+    return () => {
+      sup.stop();
+    };
   }, []);
+  const latest = useTracker(() => {
+    const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
+    const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
+    return {
+      date: sensor.date,
+      parsed: {
+        ...sensor.parsed,
+        ...solar.parsed,
+      },
+    };
+  });
+
+  if (!latest) return <LinearProgress variant="indeterminate" />;
 
   const reading = latest?.parsed;
 
@@ -53,10 +70,7 @@ const Dashboard = ({ latest }) => {
           src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
           value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
           text={[
-            'Sonnenstrahlung und UV Index',
-            `${(aggregated.dayWh / 1000).toFixed(2)} kWH 24 Std.`,
-            `${(aggregated.monthWh / 1000).toFixed(2)} kWH ${(aggregated.monthHours / 24).toFixed(1)} Tage`,
-            `${(aggregated.yearWh / 1000).toFixed(2)} kWH ${(aggregated.yearHours / 24).toFixed(1)} Tage`,
+            'Sonnenstrahlung und UV Index'
           ]}
         />
         <DashboardItem
@@ -67,7 +81,10 @@ const Dashboard = ({ latest }) => {
         {reading.phases && (
           <DashboardItem
             src={'/icons/uv-index-1.svg'}
-            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W (${dayjs.utc(reading.time, 'YYYY-MM-DD HH:mm:ss').local().format('DD.MM. HH:mm')})`}
+            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W (${dayjs
+              .utc(reading.time, 'YYYY-MM-DD HH:mm:ss')
+              .local()
+              .format('DD.MM. HH:mm')})`}
             text={[
               'Solarmodule',
               ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),

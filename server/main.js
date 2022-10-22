@@ -74,6 +74,12 @@ Meteor.methods({
   },
 });
 
+Meteor.publish('latestData', function () {
+  if (!this.userId) throw new Meteor.Error(403, 'access denied');
+  return [SensorReadings.find({}, { sort: { date: -1 }, limit: 1 }),SolarReadings.find({}, { sort: { date: -1 }, limit: 1 })];
+});
+
+
 Meteor.publish('sensorReadings', function ({ start, end, fields }) {
   if (!this.userId) throw new Meteor.Error(403, 'access denied');
   //check(start, Match.Maybe(Date));
@@ -220,13 +226,14 @@ Meteor.startup(() => {
 
 const config = {
   hour: {
+    buckets: 60,
     temp: {
-      transform:(reading)=>{
+      transform: (reading) => {
         return {
           ...reading,
-          tempf: ((reading.tempf- 32) * 5) / 9,
-          tempinf: ((reading.tempinf- 32) * 5) / 9
-        }
+          tempf: ((reading.tempf - 32) * 5) / 9,
+          tempinf: ((reading.tempinf - 32) * 5) / 9,
+        };
       },
       col: SensorReadings,
       title: '',
@@ -271,11 +278,18 @@ const config = {
       lines: [{ key: 'solarradiation', sel: '$avg', stroke: '#ff0000' }],
     },
     solar: {
+      transform(reading) {
+        return {
+          ...reading,
+          string0: reading.string0[0],
+          string1: reading.string0[1]
+        }
+      },
       col: SolarReadings,
       title: '',
       lines: [
-        { key: 'reading.strings.0.power', sel: '$max', stroke: '#ff0000' },
-        { key: 'reading.strings.1.power', sel: '$max', stroke: '#00ff00' },
+        { key: 'string0', sourceKey: 'strings.power', sel: '$min', stroke: '#ff0000' },
+        { key: 'string1', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
       ],
     },
   },
@@ -288,6 +302,7 @@ config.day = {
   barom: config.hour.barom,
   rain: config.hour.rain,
   sun: config.hour.sun,
+  solar: config.hour.solar,
 };
 config.week = {
   buckets: 24 * 7,
@@ -297,6 +312,7 @@ config.week = {
   barom: config.hour.barom,
   rain: config.hour.rain,
   sun: config.hour.sun,
+  solar: config.hour.solar,
 };
 config.month = {
   buckets: 30,
@@ -306,6 +322,7 @@ config.month = {
   barom: config.hour.barom,
   rain: config.hour.rain,
   sun: config.hour.sun,
+  solar: config.hour.solar,
 };
 config.year = {
   buckets: 365,
@@ -315,61 +332,59 @@ config.year = {
   barom: config.hour.barom,
   rain: config.hour.rain,
   sun: config.hour.sun,
+  solar: config.hour.solar,
 };
 
 Meteor.publish('sensorStats', function ({ source, offset, scale }) {
-  const latestEntry = SensorReadings.findOne({},{sort:{date:-1}});
+  const latestEntry = SensorReadings.findOne({}, { sort: { date: -1 } });
   const latest = dayjs(latestEntry.date);
-  
+
   const search = {
     date: {
       $lt: latest.clone().subtract(offset, scale).startOf(scale).toDate(),
-      $gt: latest.clone()
+      $gt: latest
+        .clone()
         .subtract(offset + 1, scale)
         .startOf(scale)
         .toDate(),
     },
   };
-  const fields = {date:1};
-  const output = {date:{$first:'$date'}};
+  const fields = { date: 1 };
+  const output = { date: { $first: '$date' } };
   const transform = config[scale][source].transform;
   const buckets = config[scale].buckets;
+  const collection = config[scale][source].col;
   config[scale][source].lines.forEach((l) => {
-    fields['parsed.' +l.key] = 1;
-    output[l.key] = { [l.sel]: '$parsed.' + l.key };
+    fields['parsed.' + (l.sourceKey || l.key)] = 1;
+    output[l.key] = { [l.sel]: '$parsed.' + (l.sourceKey || l.key) };
   });
   this.added('sensorInfos', source + scale, { ...config[scale][source], col: null, _id: source + scale, source });
 
   let cursor;
-  console.log({search,source,buckets})
-  if (scale === 'hour') {
-    SensorReadings.find(search, { sort: { date: 1 }, fields }).forEach((reading) => {
-      const values = transform?transform(reading.parsed):reading.parsed;
-      this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source });
-    });
-    this.ready();
-  } else {
-    let results=0;
-    SensorReadings.rawCollection()
-      .aggregate([
-        { $match: search },
-        {
-          $bucketAuto: {
-            groupBy: '$date',
-            buckets,
-            output,
-          },
+  let results = 0;
+  collection
+    .rawCollection()
+    .aggregate([
+      { $match: search },
+      {
+        $bucketAuto: {
+          groupBy: '$date',
+          buckets,
+          output,
         },
-      ])
-      .forEach((reading) => {
-        const values = transform?transform(reading):reading;
-        this.added('sensorReadings', source + reading._id.min, { ...values, _id: source + reading._id.min, source });
-      results+=1;
-      })
-      .finally(() => this.ready())
-      .catch((err) => {
-        throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
-      });
-      console.log(results)
-  }
+      },
+    ])
+    .forEach((reading) => {
+      const values = transform ? transform(reading) : reading;
+      this.added('sensorReadings', source + reading._id.min, { ...values, _id: source + reading._id.min, source });
+      if(results===0) console.log(`output ${source}`,reading);
+      results += 1;
+    })
+    .finally(() => {
+      this.ready();
+      console.log(`published ${results} items for ${source}`);
+    })
+    .catch((err) => {
+      throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
+    });
 });
