@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
-import { Grid, Box, Typography } from '@mui/material';
+import { Grid, Box, Typography, LinearProgress } from '@mui/material';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
@@ -29,7 +29,7 @@ const Dashboard = () => {
   const latest = useTracker(() => {
     const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
     const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
-    return {
+    return sensor.parsed && solar.parsed && {
       date: sensor.date,
       parsed: {
         ...sensor.parsed,
@@ -38,15 +38,13 @@ const Dashboard = () => {
     };
   });
 
-  if (!latest) return <LinearProgress variant="indeterminate" />;
-  if (!latest.date) return <Typography variant="h5">Keine Wetterdaten</Typography>;
-
   const reading = latest?.parsed;
-
+  if (!reading) return <LinearProgress variant="indeterminate" />;
+  
   const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
   const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
   const winddir = degToCompass(reading.winddir_avg10m);
-  console.log('Dashboard:', aggregated);
+  console.log('Dashboard:', latest);
   return (
     <Box padding={2} overflow="auto" height="100%">
       <Grid container spacing={1}>

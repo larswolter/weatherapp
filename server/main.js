@@ -76,9 +76,8 @@ Meteor.methods({
 
 Meteor.publish('latestData', function () {
   if (!this.userId) throw new Meteor.Error(403, 'access denied');
-  return [SensorReadings.find({}, { sort: { date: -1 }, limit: 1 }),SolarReadings.find({}, { sort: { date: -1 }, limit: 1 })];
+  return [SensorReadings.find({}, { sort: { date: -1 }, limit: 1 }), SolarReadings.find({}, { sort: { date: -1 }, limit: 1 })];
 });
-
 
 WebApp.connectHandlers.use('/solarinput', (request, response) => {
   try {
@@ -163,26 +162,29 @@ Meteor.startup(() => {
 const config = {
   hour: {
     buckets: 60,
+    subScale: 'minute',
+    subScaleMultiplier: 1,
+    dateFormat:'HH:mm',
     temp: {
       transform: (reading) => {
         return {
           ...reading,
-          tempf: ((reading.tempf - 32) * 5) / 9,
-          tempinf: ((reading.tempinf - 32) * 5) / 9,
+          Innen: ((reading.Innen - 32) * 5) / 9,
+          Außen: ((reading.Außen - 32) * 5) / 9,
         };
       },
       col: SensorReadings,
-      unit:'°',
+      unit: '°',
       title: '',
       lines: [
-        { key:'Innen', sourceKey: 'tempinf', sel: '$avg', stroke: '#ff0000' },
-        { key:'Außen', sourceKey: 'tempf', sel: '$avg', stroke: '#00ff00' },
+        { key: 'Innen', sourceKey: 'tempinf', sel: '$avg', stroke: '#ff0000' },
+        { key: 'Außen', sourceKey: 'tempf', sel: '$avg', stroke: '#00ff00' },
       ],
     },
     humidity: {
       col: SensorReadings,
       title: '',
-      unit:'%',
+      unit: '%',
       lines: [
         { key: 'humidityin', sel: '$avg', stroke: '#ff0000' },
         { key: 'humidity', sel: '$avg', stroke: '#00ff00' },
@@ -192,7 +194,7 @@ const config = {
     wind: {
       col: SensorReadings,
       title: '',
-      unit:'km/h',
+      unit: 'km/h',
       lines: [
         { key: 'windspeedmph', sel: '$avg', stroke: '#ff0000' },
         { key: 'windgustmph', sel: '$avg', stroke: '#00ff00' },
@@ -201,7 +203,7 @@ const config = {
     barom: {
       col: SensorReadings,
       title: '',
-      unit:'hpa',
+      unit: 'hpa',
 
       lines: [
         { key: 'baromabsin', sel: '$avg', stroke: '#ff0000' },
@@ -211,14 +213,14 @@ const config = {
     rain: {
       col: SensorReadings,
       title: '',
-      unit:'l/m²',
+      unit: 'l/m²',
 
       lines: [{ key: 'rainrate', sel: '$avg', stroke: '#ff0000' }],
     },
     sun: {
       col: SensorReadings,
       title: '',
-      unit:'W',
+      unit: 'W',
       lines: [{ key: 'solarradiation', sel: '$avg', stroke: '#ff0000' }],
     },
     solar: {
@@ -226,21 +228,24 @@ const config = {
         return {
           ...reading,
           string0: reading.string0[0],
-          string1: reading.string0[1]
-        }
+          string1: reading.string0[1],
+        };
       },
       col: SolarReadings,
       unit: 'W',
       title: '',
       lines: [
-        { key: 'string0', sourceKey: 'strings.power', sel: '$min', stroke: '#ff0000' },
+        { key: 'string0', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
         { key: 'string1', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
       ],
     },
   },
 };
 config.day = {
-  buckets: 24,
+  buckets: 48,
+  subScale: 'minute',
+  dateFormat:'HH:mm',
+  subScaleMultiplier: 30,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
   wind: config.hour.wind,
@@ -251,6 +256,9 @@ config.day = {
 };
 config.week = {
   buckets: 24 * 7,
+  subScale: 'hour',
+  dateFormat:'DD. HH',
+  subScaleMultiplier: 1,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
   wind: config.hour.wind,
@@ -260,7 +268,10 @@ config.week = {
   solar: config.hour.solar,
 };
 config.month = {
-  buckets: 30,
+  buckets: 60,
+  subScale: 'hour',
+  dateFormat:'DD.MM',
+  subScaleMultiplier: 12,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
   wind: config.hour.wind,
@@ -271,6 +282,9 @@ config.month = {
 };
 config.year = {
   buckets: 365,
+  subScale: 'day',
+  subScaleMultiplier: 1,
+  dateFormat:'DD.MM',
   temp: config.hour.temp,
   humidity: config.hour.humidity,
   wind: config.hour.wind,
@@ -284,42 +298,50 @@ Meteor.publish('sensorStats', function ({ source, offset, scale }) {
   const latestEntry = SensorReadings.findOne({}, { sort: { date: -1 } });
   const latest = dayjs(latestEntry.date);
 
-  const search = {
-    date: {
-      $lt: latest.clone().subtract(offset, scale).startOf(scale).toDate(),
-      $gt: latest
-        .clone()
-        .subtract(offset + 1, scale)
-        .startOf(scale)
-        .toDate(),
-    },
-  };
+  const start = latest
+    .clone()
+    .subtract(offset + 1, scale)
+    .startOf(scale)
+    .toDate();
   const fields = { date: 1 };
   const output = { date: { $first: '$date' } };
   const transform = config[scale][source].transform;
-  const buckets = config[scale].buckets;
+  const boundaries = [];
+  const subScale = config[scale].subScale;
+  const subScaleMultiplier = config[scale].subScaleMultiplier;
+
+  for (let b = 0; b < config[scale].buckets; b += 1) {
+    boundaries.push(
+      dayjs(start)
+        .clone()
+        .startOf(subScale)
+        .add(b * subScaleMultiplier, subScale)
+        .toDate()
+    );
+  }
+  const search = { date: { $gte: boundaries[0], $lte: boundaries[boundaries.length - 1] } };
   const collection = config[scale][source].col;
   config[scale][source].lines.forEach((l) => {
     fields['parsed.' + (l.sourceKey || l.key)] = 1;
     output[l.key] = { [l.sel]: '$parsed.' + (l.sourceKey || l.key) };
   });
-  this.added('sensorInfos', source + scale, { ...config[scale][source], col: null, _id: source + scale, source });
-
+  const infos = { ...config[scale][source], transform: null, col: null,dateFormat:config[scale].dateFormat, _id: source + scale, source };
+  this.added('sensorInfos', source + scale, infos);
   collection
     .rawCollection()
     .aggregate([
       { $match: search },
       {
-        $bucketAuto: {
+        $bucket: {
           groupBy: '$date',
-          buckets,
+          boundaries,
           output,
         },
       },
     ])
     .forEach((reading) => {
       const values = transform ? transform(reading) : reading;
-      this.added('sensorReadings', source + reading._id.min, { ...values, _id: source + reading._id.min, source });
+      this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source });
     })
     .finally(() => {
       this.ready();

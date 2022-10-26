@@ -52,12 +52,12 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight }) => {
       <LineChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
         <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
         <Legend verticalAlign="top" height={36} />
-        <YAxis width={40} type="number" unit={sensorInfos.unit} for />
+        <YAxis width={50} type="number" unit={''} for />
         <CartesianGrid strokeDasharray="3 3" />
         <Tooltip
           contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
           formatter={(value) => value.toFixed(2) + sensorInfos.unit}
-          labelFormatter={(date) => dayjs(date).format('DD.MM.YYYY HH:mm:ss')}
+          labelFormatter={(date) => dayjs(date).format(sensorInfos.dateFormat)}
         />
         {sensorInfos.lines &&
           sensorInfos.lines.map((line) => (
