@@ -1,23 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
-import { SensorReadings } from '../api/sensorData';
+import { SensorInfos, SensorReadings } from '../api/sensorData';
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea, Area, AreaChart } from 'recharts';
 import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, useTheme } from '@mui/material';
 import dayjs from 'dayjs';
 import { Box } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
-export const SensorInfos = new Mongo.Collection('sensorInfos');
-
 const dateFormater = (mode) => (item) => {
   switch (mode) {
     case 'hour':
       return dayjs(item).format('HH:mm');
     case 'day':
-      return dayjs(item).format('ddd HH:mm');
+      return dayjs(item).format('HH:mm');
     case 'week':
-      return dayjs(item).format('DD.MM.');
+      return dayjs(item).format('ddd');
     case 'month':
       return dayjs(item).format('DD.MM.');
     case 'year':
@@ -27,12 +25,12 @@ const dateFormater = (mode) => (item) => {
   }
 };
 
-const StatsDiagram = ({ source, scale, offset, diagramHeight }) => {
+
+const StatsDiagram = ({ source, scale, offset, diagramHeight, idx }) => {
   const theme = useTheme();
   const darkMode = theme.palette.mode === 'dark';
 
   useEffect(() => {
-    const fields = { date: 1 };
     const sub = Meteor.subscribe('sensorStats', { offset, source, scale }, () => {});
     return () => {
       sub.stop();
@@ -48,23 +46,34 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight }) => {
   if (!sensorInfos || !sensorReadings) return <Skeleton variant="rectangular" height={diagramHeight} />;
   console.log({ sensorInfos, sensorReadings });
   return (
-    <ResponsiveContainer width="100%" height={diagramHeight}>
-      <LineChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-        <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
-        <Legend verticalAlign="top" height={36} />
-        <YAxis width={50} type="number" unit={''} for />
-        <CartesianGrid strokeDasharray="3 3" />
-        <Tooltip
-          contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
-          formatter={(value) => value.toFixed(2) + sensorInfos.unit}
-          labelFormatter={(date) => dayjs(date).format('DD.MM.YYYY HH:mm')}
-        />
-        {sensorInfos.lines &&
-          sensorInfos.lines.map((line) => (
-            <Line key={line.key} type="monotone" dataKey={line.key} dot={false} stroke={line.strokeDark && darkMode ? line.strokeDark : line.stroke} />
-          ))}
-      </LineChart>
-    </ResponsiveContainer>
+    <Box position="relative">
+      {idx === 0 && sensorReadings.length ? (
+        <Box position="absolute" top={5} right={5} fontSize="0.8rem" textAlign="right">
+          {dayjs(sensorReadings[sensorReadings.length - 1].date).format('DD.MM.YY')}<br/>
+          {dayjs(sensorReadings[sensorReadings.length - 1].date).format('HH:mm')}
+        </Box>
+      ) : null}
+      <ResponsiveContainer width="100%" height={diagramHeight}>
+        <LineChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
+          <Legend verticalAlign="top" height={36} />
+          <YAxis width={50} type="number" unit={''} for />
+          <CartesianGrid strokeDasharray="3 3" />
+          <Tooltip
+            contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
+            formatter={(value, key) => {
+              const line = sensorInfos.lines.find((l) => l.key === key);
+              return value.toFixed(2) + (line && line.unit ? line.unit : sensorInfos.unit);
+            }}
+            labelFormatter={dateFormater(scale)}
+          />
+          {sensorInfos.lines &&
+            sensorInfos.lines.map((line) => (
+              <Line key={line.key} type="monotone" dataKey={line.key} dot={false} stroke={line.strokeDark && darkMode ? line.strokeDark : line.stroke} />
+            ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </Box>
   );
 };
 

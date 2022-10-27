@@ -3,37 +3,18 @@ import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorReadings } from '../api/sensorData';
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea, Area, AreaChart } from 'recharts';
-import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, useTheme } from '@mui/material';
+import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, SvgIcon, useMediaQuery, useTheme } from '@mui/material';
 import dayjs from 'dayjs';
 import { Box } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import StatsDiagram from './StatsDiagram';
 
-const dateFormater = (mode) => (item) => {
-  switch (mode) {
-    case 'hour':
-      return dayjs(item).format('HH:mm');
-    case 'day':
-      return dayjs(item).format('ddd HH:mm');
-    case 'week':
-      return dayjs(item).format('DD.MM.');
-    case 'month':
-      return dayjs(item).format('DD.MM.');
-    case 'year':
-      return dayjs(item).format('DD.MM.');
-    default:
-      return dayjs(item).format('DD.MM. HH:mm');
-  }
-};
-
 const Stats = ({ latest }) => {
   const [sources, setSources] = useState(['temp']);
-  const [loading, setLoading] = useState(false);
   const [scale, setScale] = useState('hour');
   const [offset, setOffset] = useState(0);
-  const [refAreaLeft, setRefAreaLeft] = useState();
-  const [refAreaRight, setRefAreaRight] = useState();
 
+  const xs = useMediaQuery((theme)=>theme.breakpoints.down('sm'))
   const handle = (type) => {
     return (evt) => {
       if (sources.includes(type)) setSources(sources.filter((t) => t !== type));
@@ -45,39 +26,38 @@ const Stats = ({ latest }) => {
 
   return (
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">
-      <Box overflow="auto" padding={2}>
-        {sources.map((source) => (
-          <StatsDiagram key={source} source={source} scale={scale} offset={offset} diagramHeight={diagramHeight} />
+      <Box overflow="auto" padding={{xs:0,sm:2}} overflow="hidden">
+        {sources.map((source,idx) => (
+          <StatsDiagram idx={idx} key={source} source={source} scale={scale} offset={offset} diagramHeight={diagramHeight} />
         ))}
       </Box>
-      {loading && <LinearProgress />}
       <Box boxShadow="0px -3px 5px rgba(0,0,0,0.2)" display="flex" flexDirection="column">
-        <Box display="flex" flexDirection="row" paddingY={2} justifyContent="space-between">
+        <Box display="flex" flexWrap="wrap" flexDirection="row" paddingY={2} justifyContent="space-between">
           <Button variant={sources.includes('temp') ? 'contained' : 'outlined'} onClick={handle('temp')}>
-            Temperatur
+            {xs?<img src="/icons/thermometer.svg" alt="Temperatur"/>:'Temperatur'}
           </Button>
           <Button variant={sources.includes('humidity') ? 'contained' : 'outlined'} onClick={handle('humidity')}>
-            Feuchtigkeit
+            {xs?<img src="/icons/humidity.svg" alt="Feuchtigkeit"/>:'Feuchtigkeit'}
           </Button>
           <Button variant={sources.includes('wind') ? 'contained' : 'outlined'} onClick={handle('wind')}>
-            Wind
+            {xs?<img src="/icons/wind-beaufort-0.svg" alt="Wind"/>:'Wind'}
           </Button>
           <Button variant={sources.includes('rain') ? 'contained' : 'outlined'} onClick={handle('rain')}>
-            Regen
+            {xs?<img src="/icons/rain.svg" alt="Regen"/>:'Regen'}
           </Button>
           <Button variant={sources.includes('sun') ? 'contained' : 'outlined'} onClick={handle('sun')}>
-            Sonne
+            {xs?<img src="/icons/clear-day.svg" alt="Sonnenscheinr"/>:'Sonne'}
           </Button>
           <Button variant={sources.includes('barom') ? 'contained' : 'outlined'} onClick={handle('barom')}>
-            Druck
+            {xs?'hPA':'Druck'}
           </Button>
           <Button variant={sources.includes('solar') ? 'contained' : 'outlined'} onClick={handle('solar')}>
-            Solar
+            {xs?'kwH':'Solar'}
           </Button>
         </Box>
         <Box display="flex" flexDirection="row" justifyContent="space-between">
-          <Button>
-            <ChevronLeft onClick={() => setOffset((cur) => cur + 1)} />
+          <Button onClick={() => setOffset((cur) => cur + 1)}>
+            <ChevronLeft />
           </Button>
           <FormControl>
             <InputLabel id="mode-label">Zeitraum</InputLabel>
@@ -98,8 +78,8 @@ const Stats = ({ latest }) => {
               <MenuItem value={'year'}>Jahr</MenuItem>
             </Select>
           </FormControl>
-          <Button>
-            <ChevronRight disabled={offset === 0} onClick={() => setOffset((cur) => Math.max(0, cur - 1))} />
+          <Button disabled={offset === 0} onClick={() => setOffset((cur) => Math.max(0, cur - 1))}>
+            <ChevronRight  />
           </Button>
         </Box>
       </Box>

@@ -177,8 +177,8 @@ const config = {
       unit: '°',
       title: '',
       lines: [
-        { key: 'Innen', sourceKey: 'tempinf', sel: '$avg', stroke: '#ff0000' },
-        { key: 'Außen', sourceKey: 'tempf', sel: '$avg', stroke: '#00ff00' },
+        { key: 'Innen', sourceKey: 'tempinf', sel: '$max', stroke: '#ff0000' },
+        { key: 'Außen', sourceKey: 'tempf', sel: '$max', stroke: '#00ff00' },
       ],
     },
     humidity: {
@@ -186,18 +186,25 @@ const config = {
       title: '',
       unit: '%',
       lines: [
-        { key: 'humidityin', sel: '$avg', stroke: '#ff0000' },
-        { key: 'humidity', sel: '$avg', stroke: '#00ff00' },
-        { key: 'soilmoisture1', sel: '$avg', stroke: '#0000ff' },
+        { key:'Feuchtigkeit Innen', sourceKey: 'humidityin', sel: '$avg', stroke: '#ff0000' },
+        { key:'Feuchtigkeit Außen', sourceKey: 'humidity', sel: '$avg', stroke: '#00ff00' },
+        { key:'Feuchtigkeit Boden', sourceKey: 'soilmoisture1', sel: '$avg', stroke: '#0000ff' },
       ],
     },
     wind: {
       col: SensorReadings,
+      transform(reading) {
+        return {
+          ...reading,
+          Windgeschw: (reading.Windgeschw  * 1.609344),
+          'Windgeschw Böen': (reading['Windgeschw Böen']  * 1.609344)
+        }
+      },
       title: '',
       unit: 'km/h',
       lines: [
-        { key: 'windspeedmph', sel: '$avg', stroke: '#ff0000' },
-        { key: 'windgustmph', sel: '$avg', stroke: '#00ff00' },
+        { key:'Windgeschw', sourceKey: 'windspeedmph', sel: '$max', stroke: '#ff0000' },
+        { key:'Windgeschw Böen', sourceKey: 'windgustmph', sel: '$max', stroke: '#00ff00' },
       ],
     },
     barom: {
@@ -206,37 +213,37 @@ const config = {
       unit: 'hpa',
 
       lines: [
-        { key: 'baromabsin', sel: '$avg', stroke: '#ff0000' },
-        { key: 'baromrelin', sel: '$avg', stroke: '#00ff00' },
+        { key:'Luftdruck abs', sourceKey: 'baromabsin', sel: '$avg', stroke: '#ff0000' },
+        { key:'Luftdruck rel', sourceKey: 'baromrelin', sel: '$avg', stroke: '#00ff00' },
       ],
     },
     rain: {
       col: SensorReadings,
       title: '',
-      unit: 'l/m²',
+      unit: 'mm',
 
-      lines: [{ key: 'rainratein', sel: '$avg', stroke: '#ff0000' }],
+      lines: [{ key:'Regenrate', sourceKey: 'rainratein', sel: '$avg', stroke: '#7777ff' }],
     },
     sun: {
       col: SensorReadings,
       title: '',
       unit: 'W',
-      lines: [{ key: 'solarradiation', sel: '$avg', stroke: '#ff0000' }],
+      lines: [{ key:'Sonneneinstrahlung', sourceKey: 'solarradiation', sel: '$avg', stroke: '#ffaa00' }],
     },
     solar: {
       transform(reading) {
         return {
           ...reading,
-          string0: reading.string0[0],
-          string1: reading.string0[1],
+          Westen: reading.Westen[0],
+          Süden: reading.Westen[1],
         };
       },
       col: SolarReadings,
       unit: 'W',
       title: '',
       lines: [
-        { key: 'string0', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
-        { key: 'string1', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
+        { key: 'Westen', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
+        { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
       ],
     },
   },
@@ -266,9 +273,9 @@ config.week = {
   rain: {
     col: SensorReadings,
     title: '',
-    unit: 'l/m²',
+    unit: 'mm',
 
-    lines: [{ key: 'hourlyrainin', sel: '$max', stroke: '#ff0000' }],
+    lines: [{ key:'Regen pro Stunde', sourceKey: 'hourlyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
   solar: config.hour.solar,
@@ -285,12 +292,31 @@ config.month = {
   rain: {
     col: SensorReadings,
     title: '',
-    unit: 'l/m²',
+    unit: 'mm',
 
-    lines: [{ key: 'dailyrainin', sel: '$max', stroke: '#ff0000' }],
+    lines: [{ key: 'Regen pro Tag', sourceKey:'dailyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
-  solar: config.hour.solar,
+  solar: {
+    transform(reading) {
+      return {
+        ...reading,
+        Westen: reading.Westen[0],
+        Süden: reading.Westen[1],
+        'kW/T Westen': reading['kW/T Westen'][0],
+        'kW/T Süden': reading['kW/T Süden'][1],
+      };
+    },
+    col: SolarReadings,
+    unit: 'W',
+    title: '',
+    lines: [
+      { key: 'Westen', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
+      { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
+      { key: 'kW/T Westen', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#ffaaaa', unit:'Wh' },
+      { key: 'kW/T Süden', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#aaffaa', unit:'Wh' },
+    ],
+  },
 };
 config.year = {
   buckets: 365,
@@ -356,11 +382,14 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale }) {
         },
       ])
       .toArray();
-    console.log(`Aggregated ${results.length} results`,results[0]);
     boundaries.forEach((_id) => {
-      const reading = results.find((r) => dayjs(r._id).isSame(_id,'second')) || { _id, ...defaultValues, date: _id };
+      const reading = results.find((r) => dayjs(r._id).isSame(_id,'second'));
+      if(reading) {
       const values = transform ? transform(reading) : reading;
       this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source });
+      } else {
+        this.added('sensorReadings', source + _id,{ _id:source + _id, date: _id, source });
+      }
     });
     this.ready();
   } catch (err) {
