@@ -81,7 +81,16 @@ const Stats = ({ latest }) => {
           </Button>
           <FormControl>
             <InputLabel id="mode-label">Zeitraum</InputLabel>
-            <Select variant="standard" labelId="mode-label" id="mode-select" value={scale} onChange={(evt) => setScale(evt.target.value)}>
+            <Select
+              variant="standard"
+              labelId="mode-label"
+              id="mode-select"
+              value={scale}
+              onChange={(evt) => {
+                setScale(evt.target.value);
+                setOffset(0);
+              }}
+            >
               <MenuItem value={'hour'}>Stunde</MenuItem>
               <MenuItem value={'day'}>Tag</MenuItem>
               <MenuItem value={'week'}>Woche</MenuItem>

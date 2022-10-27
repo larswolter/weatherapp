@@ -57,7 +57,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight }) => {
         <Tooltip
           contentStyle={darkMode ? { backgroundColor: theme.palette.background.paper } : undefined}
           formatter={(value) => value.toFixed(2) + sensorInfos.unit}
-          labelFormatter={(date) => dayjs(date).format(sensorInfos.dateFormat)}
+          labelFormatter={(date) => dayjs(date).format('DD.MM.YYYY HH:mm')}
         />
         {sensorInfos.lines &&
           sensorInfos.lines.map((line) => (

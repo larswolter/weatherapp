@@ -215,7 +215,7 @@ const config = {
       title: '',
       unit: 'l/m²',
 
-      lines: [{ key: 'rainrate', sel: '$avg', stroke: '#ff0000' }],
+      lines: [{ key: 'rainratein', sel: '$avg', stroke: '#ff0000' }],
     },
     sun: {
       col: SensorReadings,
@@ -263,20 +263,32 @@ config.week = {
   humidity: config.hour.humidity,
   wind: config.hour.wind,
   barom: config.hour.barom,
-  rain: config.hour.rain,
+  rain: {
+    col: SensorReadings,
+    title: '',
+    unit: 'l/m²',
+
+    lines: [{ key: 'hourlyrainin', sel: '$max', stroke: '#ff0000' }],
+  },
   sun: config.hour.sun,
   solar: config.hour.solar,
 };
 config.month = {
-  buckets: 60,
-  subScale: 'hour',
+  buckets: 30,
+  subScale: 'day',
   dateFormat: 'DD.MM',
-  subScaleMultiplier: 12,
+  subScaleMultiplier: 1,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
   wind: config.hour.wind,
   barom: config.hour.barom,
-  rain: config.hour.rain,
+  rain: {
+    col: SensorReadings,
+    title: '',
+    unit: 'l/m²',
+
+    lines: [{ key: 'dailyrainin', sel: '$max', stroke: '#ff0000' }],
+  },
   sun: config.hour.sun,
   solar: config.hour.solar,
 };
@@ -289,7 +301,7 @@ config.year = {
   humidity: config.hour.humidity,
   wind: config.hour.wind,
   barom: config.hour.barom,
-  rain: config.hour.rain,
+  rain: config.month.rain,
   sun: config.hour.sun,
   solar: config.hour.solar,
 };
