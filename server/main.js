@@ -164,7 +164,7 @@ const config = {
     buckets: 60,
     subScale: 'minute',
     subScaleMultiplier: 1,
-    dateFormat:'HH:mm',
+    dateFormat: 'HH:mm',
     temp: {
       transform: (reading) => {
         return {
@@ -244,7 +244,7 @@ const config = {
 config.day = {
   buckets: 48,
   subScale: 'minute',
-  dateFormat:'HH:mm',
+  dateFormat: 'HH:mm',
   subScaleMultiplier: 30,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
@@ -257,7 +257,7 @@ config.day = {
 config.week = {
   buckets: 24 * 7,
   subScale: 'hour',
-  dateFormat:'DD. HH',
+  dateFormat: 'DD. HH',
   subScaleMultiplier: 1,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
@@ -270,7 +270,7 @@ config.week = {
 config.month = {
   buckets: 60,
   subScale: 'hour',
-  dateFormat:'DD.MM',
+  dateFormat: 'DD.MM',
   subScaleMultiplier: 12,
   temp: config.hour.temp,
   humidity: config.hour.humidity,
@@ -284,7 +284,7 @@ config.year = {
   buckets: 365,
   subScale: 'day',
   subScaleMultiplier: 1,
-  dateFormat:'DD.MM',
+  dateFormat: 'DD.MM',
   temp: config.hour.temp,
   humidity: config.hour.humidity,
   wind: config.hour.wind,
@@ -294,21 +294,23 @@ config.year = {
   solar: config.hour.solar,
 };
 
-Meteor.publish('sensorStats', function ({ source, offset, scale }) {
+Meteor.publish('sensorStats', async function ({ source, offset, scale }) {
+  const fields = { date: 1 };
+  const output = { date: { $first: '$date' } };
+  const defaultValues = {};
+  const transform = config[scale][source].transform;
+  const boundaries = [];
+  const subScale = config[scale].subScale;
+  const subScaleMultiplier = config[scale].subScaleMultiplier;
+
   const latestEntry = SensorReadings.findOne({}, { sort: { date: -1 } });
   const latest = dayjs(latestEntry.date);
 
   const start = latest
     .clone()
+    .endOf(subScale)
     .subtract(offset + 1, scale)
-    .startOf(scale)
     .toDate();
-  const fields = { date: 1 };
-  const output = { date: { $first: '$date' } };
-  const transform = config[scale][source].transform;
-  const boundaries = [];
-  const subScale = config[scale].subScale;
-  const subScaleMultiplier = config[scale].subScaleMultiplier;
 
   for (let b = 0; b < config[scale].buckets; b += 1) {
     boundaries.push(
@@ -324,29 +326,32 @@ Meteor.publish('sensorStats', function ({ source, offset, scale }) {
   config[scale][source].lines.forEach((l) => {
     fields['parsed.' + (l.sourceKey || l.key)] = 1;
     output[l.key] = { [l.sel]: '$parsed.' + (l.sourceKey || l.key) };
+    defaultValues[l.key] = 0;
   });
-  const infos = { ...config[scale][source], transform: null, col: null,dateFormat:config[scale].dateFormat, _id: source + scale, source };
+  const infos = { ...config[scale][source], transform: null, col: null, dateFormat: config[scale].dateFormat, _id: source + scale, source };
   this.added('sensorInfos', source + scale, infos);
-  collection
-    .rawCollection()
-    .aggregate([
-      { $match: search },
-      {
-        $bucket: {
-          groupBy: '$date',
-          boundaries,
-          output,
+  try {
+    const results = await collection
+      .rawCollection()
+      .aggregate([
+        { $match: search },
+        {
+          $bucket: {
+            groupBy: '$date',
+            boundaries,
+            output,
+          },
         },
-      },
-    ])
-    .forEach((reading) => {
+      ])
+      .toArray();
+    console.log(`Aggregated ${results.length} results`,results[0]);
+    boundaries.forEach((_id) => {
+      const reading = results.find((r) => dayjs(r._id).isSame(_id,'second')) || { _id, ...defaultValues, date: _id };
       const values = transform ? transform(reading) : reading;
       this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source });
-    })
-    .finally(() => {
-      this.ready();
-    })
-    .catch((err) => {
-      throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
     });
+    this.ready();
+  } catch (err) {
+    throw new Meteor.Error('ERROR' + err.message + ' : ' + err.reason);
+  }
 });
