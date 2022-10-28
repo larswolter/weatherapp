@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
-import { Grid, Box } from '@mui/material';
+import { Grid, Box, Typography, LinearProgress } from '@mui/material';
+import { useTracker } from 'meteor/react-meteor-data';
+import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -15,20 +17,34 @@ const degToCompass = (num) => {
   return arr[Math.floor(val) % 16];
 };
 
-const Dashboard = ({ latest }) => {
+const Dashboard = () => {
   const [aggregated, setAggregated] = useState({});
+
   useEffect(() => {
-    Meteor.call('aggregateSensorData', (err, res) => {
-      setAggregated(res || err);
-    });
+    const sup = Meteor.subscribe('latestData');
+    return () => {
+      sup.stop();
+    };
   }, []);
+  const latest = useTracker(() => {
+    const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
+    const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
+    return sensor.parsed && solar.parsed && {
+      date: sensor.date,
+      parsed: {
+        ...sensor.parsed,
+        ...solar.parsed,
+      },
+    };
+  });
 
   const reading = latest?.parsed;
-
+  if (!reading) return <LinearProgress variant="indeterminate" />;
+  
   const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
   const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
   const winddir = degToCompass(reading.winddir_avg10m);
-  console.log('Dashboard:', aggregated);
+  console.log('Dashboard:', latest);
   return (
     <Box padding={2} overflow="auto" height="100%">
       <Grid container spacing={1}>
@@ -50,64 +66,25 @@ const Dashboard = ({ latest }) => {
           text={['Windböhen', `Stärkste Böhe ${(reading.maxdailygust * 1.609344).toFixed(2)} km/h`]}
         />
         <DashboardItem
-          src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
-          value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
-          text={[
-            'Sonnenstrahlung und UV Index',
-            `${(aggregated.dayWh / 1000).toFixed(2)} kWH 24 Std.`,
-            `${(aggregated.monthWh / 1000).toFixed(2)} kWH ${(aggregated.monthHours / 24).toFixed(1)} Tage`,
-            `${(aggregated.yearWh / 1000).toFixed(2)} kWH ${(aggregated.yearHours / 24).toFixed(1)} Tage`,
-          ]}
-        />
-        <DashboardItem
           src={'/icons/rain.svg'}
           value={`${(reading.hourlyrainin * 100).toFixed(2)} mm `}
           text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 100).toFixed(2)} mm`]}
         />
-        {reading.phases && (
           <DashboardItem
-            src={'/icons/uv-index-1.svg'}
-            value={`${(reading.phases && reading.phases[0] && reading.phases[0].power).toFixed(0)} W `}
+            src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
+            value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
             text={[
-              'Solarmodule',
+              `Solarmodule (${dayjs
+                .utc(reading.time, 'YYYY-MM-DD HH:mm:ss')
+                .local()
+                .format('DD.MM. HH:mm')})`,
               ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),
               reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',
             ]}
           />
-        )}
       </Grid>
     </Box>
   );
 };
 
-/*
-{
-  "PASSKEY": "4ADCEC4AFD5914CBCFF65D6BB0BA8868",
-  "stationtype": "EasyWeatherV1.5.2",
-  "dateutc": "2021-07-13+21:22:09",
-  "tempinf": "75.0",
-  "humidityin": "74",
-  "baromrelin": "29.770",
-  "baromabsin": "29.457",
-  "tempf": "71.8",
-  "humidity": "82",
-  "winddir": "333",
-  "winddir_avg10m": "324",
-  "windspeedmph": "0.2",
-  "windspdmph_avg10m": "0.4",
-  "windgustmph": "3.4",
-  "maxdailygust": "11.windspdmph_avg10m4",
-  "rainratein": "0.071",
-  "eventrainin": "0.244",
-  "hourlyrainin": "0.138",
-  "dailyrainin": "0.244",
-  "weeklyrainin": "0.350",
-  "monthlyrainin": "2.339",
-  "yearlyrainin": "3.984",
-  "solarradiation": "0.00",
-  "uv": "0",
-  "soilmoisture1": "10",
-  "model": "WS2350"
-}
-*/
 export default Dashboard;
