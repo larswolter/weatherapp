@@ -6,7 +6,8 @@ import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, Responsi
 import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, useTheme } from '@mui/material';
 import dayjs from 'dayjs';
 import { Box } from '@mui/material';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import ChevronRight from '@mui/icons-material/ChevronRight';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
 
 const dateFormater = (mode) => (item) => {
   switch (mode) {

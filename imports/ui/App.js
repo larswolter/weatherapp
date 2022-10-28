@@ -3,7 +3,6 @@ import { BottomNavigation, BottomNavigationAction, Box, LinearProgress } from '@
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/ShowChart';
 import Dashboard from './Dashboard';
-import History from './History';
 import Stats from './Stats';
 
 Meteor.subscribe('latestData', {});
