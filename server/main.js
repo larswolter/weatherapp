@@ -278,7 +278,26 @@ config.week = {
     lines: [{ key:'Regen pro Stunde', sourceKey: 'hourlyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
-  solar: config.hour.solar,
+  solar: {
+    transform(reading) {
+      return {
+        ...reading,
+        Westen: reading.Westen[0],
+        Süden: reading.Westen[1],
+        'kW/T Westen': reading['kW/T Westen'][0],
+        'kW/T Süden': reading['kW/T Süden'][1],
+      };
+    },
+    col: SolarReadings,
+    unit: 'W',
+    title: '',
+    lines: [
+      { key: 'Westen', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
+      { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
+      { key: 'kW/T Westen', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#ffaaaa', unit:'Wh' },
+      { key: 'kW/T Süden', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#aaffaa', unit:'Wh' },
+    ],
+  },
 };
 config.month = {
   buckets: 30,
@@ -332,7 +351,7 @@ config.year = {
   solar: config.hour.solar,
 };
 
-Meteor.publish('sensorStats', async function ({ source, offset, scale }) {
+Meteor.publish('sensorStats', async function ({ source, offset, scale,yearOffset=0 }) {
   const fields = { date: 1 };
   const output = { date: { $first: '$date' } };
   const defaultValues = {};
@@ -347,6 +366,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale }) {
   const start = latest
     .clone()
     .endOf(subScale)
+    .subtract(yearOffset, 'year')
     .subtract(offset + 1, scale)
     .toDate();
 
@@ -386,9 +406,9 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale }) {
       const reading = results.find((r) => dayjs(r._id).isSame(_id,'second'));
       if(reading) {
       const values = transform ? transform(reading) : reading;
-      this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source });
+      this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source, yearOffset });
       } else {
-        this.added('sensorReadings', source + _id,{ _id:source + _id, date: _id, source });
+        this.added('sensorReadings', source + _id,{ _id:source + _id, date: _id, source, yearOffset });
       }
     });
     this.ready();

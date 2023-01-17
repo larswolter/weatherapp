@@ -10,7 +10,7 @@ import ChevronRight from '@mui/icons-material/ChevronRight';
 import ChevronLeft from '@mui/icons-material/ChevronLeft';
 import StatsDiagram from './StatsDiagram';
 
-const Stats = ({ latest }) => {
+const Stats = ({ yearOffset }) => {
   const [sources, setSources] = useState(['temp']);
   const [scale, setScale] = useState('hour');
   const [offset, setOffset] = useState(0);
@@ -29,7 +29,7 @@ const Stats = ({ latest }) => {
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">
       <Box padding={{ xs: 0, sm: 2 }} overflow="hidden">
         {sources.map((source, idx) => (
-          <StatsDiagram idx={idx} key={source} source={source} scale={scale} offset={offset} diagramHeight={diagramHeight} />
+          <StatsDiagram idx={idx} key={source} source={source} scale={scale} offset={offset} yearOffset={yearOffset||0} diagramHeight={diagramHeight} />
         ))}
       </Box>
       <Box boxShadow="0px -3px 5px rgba(0,0,0,0.2)" display="flex" flexDirection="column">
