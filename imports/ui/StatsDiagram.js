@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorInfos, SensorReadings } from '../api/sensorData';
-import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer, ReferenceArea, Area, AreaChart } from 'recharts';
-import { Button, FormControl, InputLabel, LinearProgress, MenuItem, Select, Skeleton, useTheme } from '@mui/material';
+import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
-import { Box } from '@mui/material';
-import ChevronRight from '@mui/icons-material/ChevronRight';
-import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import Skeleton from '@mui/material/Skeleton';
+import useTheme from '@mui/material/styles/useTheme';
+import Box from '@mui/material/Box';
 
 const dateFormater = (mode) => (item) => {
   switch (mode) {
@@ -85,7 +84,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
           />
           {sensorInfos.lines &&
             sensorInfos.lines.map((line) => (
-              <Line key={line.key} type="monotone" dataKey={line.key} dot={false} stroke={line.strokeDark && darkMode ? line.strokeDark : line.stroke} />
+              <Line connectNulls key={line.key} type="monotone" dataKey={line.key} dot={false} stroke={line.strokeDark && darkMode ? line.strokeDark : line.stroke} />
             ))}
           {yearOffset &&
             sensorInfos.lines &&

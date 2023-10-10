@@ -1,5 +1,9 @@
 import React from 'react';
-import { Avatar, Grid, Card, CardHeader, Box } from '@mui/material';
+import Avatar from '@mui/material/Avatar';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import Box from '@mui/material/Box';
 import ErrorBoundary from './ErrorBoundary';
 
 const DashboardItem = ({ src, value, text }) => {

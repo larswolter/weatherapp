@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
-import { Grid, Box, Typography, LinearProgress } from '@mui/material';
+import Box  from '@mui/material/Box';
+import Grid  from '@mui/material/Grid';
+import LinearProgress  from '@mui/material/LinearProgress';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
@@ -18,19 +20,23 @@ const degToCompass = (num) => {
 };
 
 const Dashboard = () => {
-  const [aggregated, setAggregated] = useState({});
-
+  const userId = useTracker(()=>{
+    return Meteor.connection.userId();
+  });
   useEffect(() => {
     const sup = Meteor.subscribe('latestData');
+    console.log('subscribing latestData');
     return () => {
       sup.stop();
+      console.log('stopped subscribing latestData');
     };
-  }, []);
+  }, [userId]);
   const latest = useTracker(() => {
     const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
     const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
     return sensor.parsed && solar.parsed && {
       date: sensor.date,
+      solarDate: solar.date,
       parsed: {
         ...sensor.parsed,
         ...solar.parsed,
@@ -67,16 +73,14 @@ const Dashboard = () => {
         />
         <DashboardItem
           src={'/icons/rain.svg'}
-          value={`${(reading.hourlyrainin * 100).toFixed(2)} mm `}
-          text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 100).toFixed(2)} mm`]}
+          value={`${(reading.hourlyrainin * 25.4).toFixed(2)} mm `}
+          text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 25.4).toFixed(2)} mm`]}
         />
           <DashboardItem
             src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
             value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
             text={[
-              `Solarmodule (${dayjs
-                .utc(reading.time, 'YYYY-MM-DD HH:mm:ss')
-                .local()
+              `Solarmodule (${dayjs(latest.solarDate)
                 .format('DD.MM. HH:mm')})`,
               ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),
               reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',

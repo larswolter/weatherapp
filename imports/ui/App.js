@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { BottomNavigation, BottomNavigationAction, Box, LinearProgress } from '@mui/material';
+import BottomNavigation from '@mui/material/BottomNavigation';
+import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Box  from '@mui/material/Box';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/ShowChart';
 import CompareIcon from '@mui/icons-material/StackedLineChart';
 import Dashboard from './Dashboard';
 import Stats from './Stats';
-
-Meteor.subscribe('latestData', {});
 
 export const App = () => {
   const [view, setView] = useState('Dashboard');
