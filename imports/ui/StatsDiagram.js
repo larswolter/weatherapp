@@ -5,7 +5,7 @@ import { SensorInfos, SensorReadings } from '../api/sensorData';
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 import Skeleton from '@mui/material/Skeleton';
-import useTheme from '@mui/material/styles/useTheme';
+import { useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
 
 const dateFormater = (mode) => (item) => {
@@ -44,9 +44,10 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
       const oldReadings = SensorReadings.find({ source, yearOffset }, { sort: { date: 1 } }).fetch();
       return SensorReadings.find({ source, yearOffset: 0 }, { sort: { date: 1 } }).map((reading, sridx) => {
         const old = oldReadings[sridx];
-        old && Object.keys(old).forEach((key) => {
-          reading[key + ' Alt'] = old[key];
-        });
+        old &&
+          Object.keys(old).forEach((key) => {
+            reading[key + ' Alt'] = old[key];
+          });
         return reading;
       });
     } else return SensorReadings.find({ source }, { sort: { date: 1 } }).fetch();
@@ -84,7 +85,14 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
           />
           {sensorInfos.lines &&
             sensorInfos.lines.map((line) => (
-              <Line connectNulls key={line.key} type="monotone" dataKey={line.key} dot={false} stroke={line.strokeDark && darkMode ? line.strokeDark : line.stroke} />
+              <Line
+                connectNulls
+                key={line.key}
+                type="monotone"
+                dataKey={line.key}
+                dot={false}
+                stroke={line.strokeDark && darkMode ? line.strokeDark : line.stroke}
+              />
             ))}
           {yearOffset &&
             sensorInfos.lines &&
