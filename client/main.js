@@ -1,12 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { ThemeProvider, createTheme } from '@mui/material';
 import StyledEngineProvider from '@mui/material/StyledEngineProvider';
 import { App } from '/imports/ui/App';
 import Authenticator from '../imports/ui/Authenticator';
-import './service-worker';
 
 const AppShell = () => {
   const theme = createTheme({

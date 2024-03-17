@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
-import './service-worker';
 
 await SensorReadings.createIndexAsync({ date: -1 });
 await SensorReadings.createIndexAsync({ date: 1 });
