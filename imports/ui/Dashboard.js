@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { beaufort } from '../api/sensorData';
-import Box  from '@mui/material/Box';
-import Grid  from '@mui/material/Grid';
-import LinearProgress  from '@mui/material/LinearProgress';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import LinearProgress from '@mui/material/LinearProgress';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
@@ -20,7 +20,7 @@ const degToCompass = (num) => {
 };
 
 const Dashboard = () => {
-  const userId = useTracker(()=>{
+  const userId = useTracker(() => {
     return Meteor.connection.userId();
   });
   useEffect(() => {
@@ -34,19 +34,21 @@ const Dashboard = () => {
   const latest = useTracker(() => {
     const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
     const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
-    return sensor.parsed && solar.parsed && {
-      date: sensor.date,
-      solarDate: solar.date,
-      parsed: {
-        ...sensor.parsed,
-        ...solar.parsed,
-      },
-    };
+    return (
+      (sensor.parsed || solar.parsed) && {
+        date: sensor.date,
+        solarDate: solar.date,
+        parsed: {
+          ...sensor.parsed,
+          ...solar.parsed,
+        },
+      }
+    );
   });
 
   const reading = latest?.parsed;
   if (!reading) return <LinearProgress variant="indeterminate" />;
-  
+
   const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
   const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
   const winddir = degToCompass(reading.winddir_avg10m);
@@ -76,16 +78,15 @@ const Dashboard = () => {
           value={`${(reading.hourlyrainin * 25.4).toFixed(2)} mm `}
           text={['Regenmenge pro Stunde', `Regen heute ${(reading.dailyrainin * 25.4).toFixed(2)} mm`]}
         />
-          <DashboardItem
-            src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
-            value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
-            text={[
-              `Solarmodule (${dayjs(latest.solarDate)
-                .format('DD.MM. HH:mm')})`,
-              ...(reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)),
-              reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',
-            ]}
-          />
+        <DashboardItem
+          src={reading.uv ? `/icons/uv-index-${reading.uv}.svg` : '/icons/clear-day.svg'}
+          value={`${reading.solarradiation.toFixed(4)} Watt ${reading.uv ? '' : ',Kein UV Index'}`}
+          text={[
+            `Solarmodule (${dayjs(latest.solarDate).format('DD.MM. HH:mm')})`,
+            ...((reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)) || []),
+            reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',
+          ]}
+        />
       </Grid>
     </Box>
   );
