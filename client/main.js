@@ -9,17 +9,11 @@ import Authenticator from '../imports/ui/Authenticator';
 import './service-worker';
 
 const AppShell = () => {
-  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
-  console.log({ prefersDarkMode });
-  const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: prefersDarkMode ? 'dark' : 'light',
-        },
-      }),
-    [prefersDarkMode]
-  );
+  const theme = createTheme({
+    palette: {
+      mode: 'dark',
+    },
+  });
   return (
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>

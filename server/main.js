@@ -2,14 +2,13 @@ import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
-import './ssr';
 import './service-worker';
 
-SensorReadings.createIndex({ date: -1 });
-SensorReadings.createIndex({ date: 1 });
+await SensorReadings.createIndexAsync({ date: -1 });
+await SensorReadings.createIndexAsync({ date: 1 });
 
-SolarReadings.createIndex({ date: -1 });
-SolarReadings.createIndex({ date: 1 });
+await SolarReadings.createIndexAsync({ date: -1 });
+await SolarReadings.createIndexAsync({ date: 1 });
 
 Meteor.startup(() => {
   console.log(
@@ -27,8 +26,8 @@ Meteor.methods({
   },
   async aggregateSensorData() {
     if (!this.userId) throw new Meteor.Error(403, 'access denied');
-    const oldest = SensorReadings.findOne({}, { sort: { date: 1 } });
-    const newest = SensorReadings.findOne({}, { sort: { date: -1 } });
+    const oldest = await SensorReadings.findOneAsync({}, { sort: { date: 1 } });
+    const newest = await SensorReadings.findOneAsync({}, { sort: { date: -1 } });
     const start = newest.date;
     const maxHours = dayjs(start).clone().diff(oldest.date, 'hours');
     const elements = [
@@ -102,7 +101,7 @@ WebApp.connectHandlers.use('/solarinput', (request, response) => {
           } catch (err) {
             parsed = { error: err.message };
           }
-          SolarReadings.insert({ date: new Date(), parsed, raw });
+          await SolarReadings.insertAsync({ date: new Date(), parsed, raw });
 
           response.writeHead(200);
           response.end();
@@ -134,13 +133,13 @@ WebApp.connectHandlers.use('/weatherinput', (request, response) => {
   });
   request.on(
     'end',
-    Meteor.bindEnvironment((chunk) => {
+    Meteor.bindEnvironment(async chunk => {
       const parsed = {};
       raw.split('&').forEach((pair) => {
         const [key, value] = pair.split('=');
         parsed[key] = value.match(/^[0-9.]+$/) ? Number(value) : value;
       });
-      SensorReadings.insert({ date: new Date(), raw, parsed });
+      await SensorReadings.insertAsync({ date: new Date(), raw, parsed });
 
       response.writeHead(200);
       response.end();
@@ -178,15 +177,15 @@ WebApp.connectHandlers.use('/export', async (request, response) => {
   }
 });
 
-Meteor.startup(() => {
-  SensorReadings.find().forEach((r) => {
+Meteor.startup(async () => {
+  await SensorReadings.find().forEachAsync(async r => {
     if (typeof r.parsed.tempf === 'string') {
       const parsed = {};
       Object.keys(r.parsed).forEach((key) => {
         const value = r.parsed[key];
         parsed[key] = value.match(/^[0-9.]+$/) ? Number(value) : value;
       });
-      SensorReadings.update(r._id, { $set: { parsed } });
+      await SensorReadings.updateAsync(r._id, { $set: { parsed } });
     }
   });
 });
@@ -444,7 +443,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
   const subScale = config[scale].subScale;
   const subScaleMultiplier = config[scale].subScaleMultiplier;
 
-  const latestEntry = SensorReadings.findOne({}, { sort: { date: -1 } });
+  const latestEntry = await SensorReadings.findOneAsync({}, { sort: { date: -1 } });
   const latest = dayjs(latestEntry.date);
 
   const start = latest
