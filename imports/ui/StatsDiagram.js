@@ -5,7 +5,7 @@ import { SensorInfos, SensorReadings } from '../api/sensorData';
 import { XAxis, YAxis, Tooltip, CartesianGrid, Line, LineChart, Legend, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 import Skeleton from '@mui/material/Skeleton';
-import { useTheme } from '@mui/material';
+import useTheme from '@mui/material/styles/useTheme';
 import Box from '@mui/material/Box';
 
 const dateFormater = (mode) => (item) => {

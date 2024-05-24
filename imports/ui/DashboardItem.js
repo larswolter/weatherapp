@@ -12,7 +12,7 @@ const DashboardItem = ({ src, value, text }) => {
       <ErrorBoundary>
         <Card>
           <CardHeader
-            avatar={<Avatar variant="rounded" src={src} />}
+            avatar={<Avatar variant="rounded" src={src} alt="Entryicon" />}
             title={value}
             subheader={
               Array.isArray(text) ? (

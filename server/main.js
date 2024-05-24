@@ -3,11 +3,13 @@ import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
 
-await SensorReadings.createIndexAsync({ date: -1 });
-await SensorReadings.createIndexAsync({ date: 1 });
+await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: -1 });
+await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: 1 });
 
 await SolarReadings.createIndexAsync({ date: -1 });
 await SolarReadings.createIndexAsync({ date: 1 });
+
+WebApp.addHtmlAttributeHook(() => ({ lang: 'de' }));
 
 Meteor.startup(() => {
   console.log(
@@ -132,7 +134,7 @@ WebApp.connectHandlers.use('/weatherinput', (request, response) => {
   });
   request.on(
     'end',
-    Meteor.bindEnvironment(async chunk => {
+    Meteor.bindEnvironment(async (chunk) => {
       const parsed = {};
       raw.split('&').forEach((pair) => {
         const [key, value] = pair.split('=');
@@ -159,8 +161,8 @@ WebApp.connectHandlers.use('/export', async (request, response) => {
     if (request.query.until && query.date) query.date.$lte = dayjs(request.query.until).toDate();
     else if (request.query.until) query.date = { $lte: dayjs(request.query.until).toDate() };
     let cursor;
-    if (request.query.collection === 'readings') cursor = SensorReadings.find(query,{fields:{raw:0}});
-    if (request.query.collection === 'solar') cursor = SolarReadings.find(query,{fields:{raw:0}});
+    if (request.query.collection === 'readings') cursor = SensorReadings.find(query, { fields: { raw: 0 } });
+    if (request.query.collection === 'solar') cursor = SolarReadings.find(query, { fields: { raw: 0 } });
     response.setHeader('Content-Type', 'application/json');
     response.setHeader('Content-Disposition', `attachment; filename="weather-export-${request.query.collection}-${dayjs().format('YYYY-MM-DD_HH-mm')}.json"`);
     response.writeHead(200);
@@ -177,7 +179,7 @@ WebApp.connectHandlers.use('/export', async (request, response) => {
 });
 
 Meteor.startup(async () => {
-  await SensorReadings.find().forEachAsync(async r => {
+  await SensorReadings.find().forEachAsync(async (r) => {
     if (typeof r.parsed.tempf === 'string') {
       const parsed = {};
       Object.keys(r.parsed).forEach((key) => {

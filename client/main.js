@@ -1,7 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider, createTheme } from '@mui/material';
+import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import createTheme from '@mui/material/styles/createTheme';
 import StyledEngineProvider from '@mui/material/StyledEngineProvider';
 import { App } from '/imports/ui/App';
 import Authenticator from '../imports/ui/Authenticator';

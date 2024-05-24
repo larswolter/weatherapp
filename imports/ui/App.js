@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { lazy, useState, Suspense } from 'react';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Box  from '@mui/material/Box';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HistoryIcon from '@mui/icons-material/ShowChart';
 import CompareIcon from '@mui/icons-material/StackedLineChart';
-import Dashboard from './Dashboard';
-import Stats from './Stats';
+import LinearProgress from '@mui/material/LinearProgress';
+
+const Stats = lazy(() => import('./Stats'));
+const Dashboard = lazy(() => import('./Dashboard'));
 
 export const App = () => {
   const [view, setView] = useState('Dashboard');
@@ -26,9 +28,11 @@ export const App = () => {
       }}
     >
       <Box flexBasis="100%" overflow="hidden">
+      <Suspense fallback={<LinearProgress variant="indeterminate" />}>
         {view === 'Dashboard' ? <Dashboard /> : null}
         {view === 'Historie' ? <Stats />:null}
         {view === 'Vergleich' ? <Stats yearOffset={1} />:null}
+        </Suspense>
       </Box>
       <BottomNavigation
         value={view}
