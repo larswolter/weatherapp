@@ -2,15 +2,25 @@ import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
+import { setupMQTT } from '../imports/api/mqtt';
 
 await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: -1 });
 await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: 1 });
 
 await SolarReadings.createIndexAsync({ date: -1 });
 await SolarReadings.createIndexAsync({ date: 1 });
+await SolarReadings.createIndexAsync({ 'parsed.last_success': 1 });
 
 WebApp.addHtmlAttributeHook(() => ({ lang: 'de' }));
 
+if (process.env.MQTT_URL) {
+  setupMQTT({
+    mqttUrl: process.env.MQTT_URL,
+    username: process.env.MQTT_USERNAME,
+    password: process.env.MQTT_PASSWORD,
+    topic: process.env.MQTT_TOPIC,
+  });
+}
 Meteor.startup(() => {
   console.log(
     `Starting Weatherapp ${process.env.ACCESS_TOKEN ? 'using access token' : 'without access token'} and ${
