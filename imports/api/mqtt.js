@@ -33,15 +33,15 @@ export const setupMQTT = async ({ username, password, topic, mqttUrl }) => {
       if (msgTopic.endsWith('/last_success')) {
         // save the current accumulated data shortly after last_success
         setTimeout(async () => {
-          if(!dataPacket.ch1?.MaxPower && !dataPacket.ch2?.MaxPower) {
+          if (!dataPacket.ch1?.P_DC && !dataPacket.ch2?.P_DC) {
             console.log('MQTT no valid power data', dataPacket);
             return;
           }
           const parsed = {
             last_success: Number(dataPacket.last_success),
             strings: [
-              { power: Number(dataPacket.ch1.MaxPower), energy_daily: Number(dataPacket.ch1.YieldDay), energy_total: Number(dataPacket.ch1.YieldTotal)*1000 },
-              { power: Number(dataPacket.ch2.MaxPower), energy_daily: Number(dataPacket.ch2.YieldDay), energy_total: Number(dataPacket.ch2.YieldTotal)*1000 },
+              { power: Number(dataPacket.ch1.P_DC), energy_daily: Number(dataPacket.ch1.YieldDay), energy_total: Number(dataPacket.ch1.YieldTotal) * 1000 },
+              { power: Number(dataPacket.ch2.P_DC), energy_daily: Number(dataPacket.ch2.YieldDay), energy_total: Number(dataPacket.ch2.YieldTotal) * 1000 },
             ],
           };
           dataPacket.ch0 &&
