@@ -417,30 +417,63 @@ config.month = {
   },
 };
 config.year = {
-  buckets: 365,
-  subScale: 'day',
+  buckets: 13,
+  subScale: 'month',
   subScaleMultiplier: 1,
-  dateFormat: 'DD.MM',
-  temp: config.month.temp,
-  humidity: config.month.humidity,
+  dateFormat: 'MM',
+  temp: {
+    transform: (reading) => {
+      return {
+        ...reading,
+        Innen: ((reading.Innen - 32) * 5) / 9,
+        Außen: ((reading.Außen - 32) * 5) / 9,
+      };
+    },
+    col: SensorReadings,
+    unit: '°',
+    title: '',
+    lines: [
+      { key: 'Innen', sourceKey: 'tempinf', sel: '$avg', stroke: '#ff0000' },
+      { key: 'Außen', sourceKey: 'tempf', sel: '$avg', stroke: '#00ff00' },
+    ],
+  },
+humidity: config.month.humidity,
   wind: config.month.wind,
   barom: config.month.barom,
-  rain: config.month.rain,
+  rain: {
+    col: SensorReadings,
+    title: '',
+    unit: 'mm',
+    transform(reading) {
+      return {
+        ...reading,
+        'Regen pro Monat': reading['Regen pro Monat'] * 25.4,
+      };
+    },
+
+    lines: [{ key: 'Regen pro Monat', sourceKey: 'monthlyrainin', sel: '$max', stroke: '#7777ff' }],
+  },
   sun: config.month.sun,
   solar: {
     transform(reading) {
       return {
-        ...reading,
-        'kW/h Westen': reading['kW/h Westen'][0],
-        'kW/h Süden': reading['kW/h Süden'][1],
+        _id:reading._id,
+        date:reading.date,
+        yearOffset:reading.yearOffset,
+        source:reading.source,
+        reading,
+        'Westen': reading['Westen'][0] - reading['Westen Min'][0],
+        'Süden': reading['Süden'][1] - reading['Süden Min'][1],
       };
     },
     col: SolarReadings,
     unit: 'W',
     title: '',
     lines: [
-      { key: 'kW/h Westen', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#ff0000', unit: 'Wh' },
-      { key: 'kW/h Süden', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#00ff00', unit: 'Wh' },
+      { key: 'Westen Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'Wh' },
+      { key: 'Süden Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'Wh' },
+      { key: 'Westen', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#ff0000', unit: 'Wh' },
+      { key: 'Süden', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#00ff00', unit: 'Wh' },
     ],
   },
 };
@@ -455,7 +488,8 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
   const subScaleMultiplier = config[scale].subScaleMultiplier;
 
   const latestEntry = await SensorReadings.findOneAsync({}, { sort: { date: -1 } });
-  const latest = dayjs(latestEntry.date);
+  const latestSolarEntry = await SolarReadings.findOneAsync({}, { sort: { date: -1 } });
+  const latest = dayjs(latestEntry.date).isAfter(latestSolarEntry.date)?dayjs(latestEntry.date):dayjs(latestSolarEntry.date);
 
   const start = latest
     .clone()
@@ -464,7 +498,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
     .subtract(offset + 1, scale)
     .toDate();
 
-  for (let b = 0; b < config[scale].buckets; b += 1) {
+  for (let b = 0; b <= config[scale].buckets; b += 1) {
     boundaries.push(
       dayjs(start)
         .clone()
