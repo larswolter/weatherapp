@@ -437,7 +437,7 @@ config.year = {
       { key: 'Außen', sourceKey: 'tempf', sel: '$avg', stroke: '#00ff00' },
     ],
   },
-humidity: config.month.humidity,
+  humidity: config.month.humidity,
   wind: config.month.wind,
   barom: config.month.barom,
   rain: {
@@ -457,23 +457,24 @@ humidity: config.month.humidity,
   solar: {
     transform(reading) {
       return {
-        _id:reading._id,
-        date:reading.date,
-        yearOffset:reading.yearOffset,
-        source:reading.source,
+        _id: reading._id,
+        date: reading.date,
+        yearOffset: reading.yearOffset,
+        source: reading.source,
         reading,
-        'Westen': reading['Westen'][0] - reading['Westen Min'][0],
-        'Süden': reading['Süden'][1] - reading['Süden Min'][1],
+        Westen: (reading['Westen'][0] - reading['Westen Min'][0]) * 0.001,
+        Süden: (reading['Süden'][1] - reading['Süden Min'][1]) * 0.001,
       };
     },
     col: SolarReadings,
-    unit: 'W',
+    unit: 'kWh',
     title: '',
+    match: { 'strings.energy_total': { $gt: 1, $lt: 10000000 } },
     lines: [
-      { key: 'Westen Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'Wh' },
-      { key: 'Süden Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'Wh' },
-      { key: 'Westen', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#ff0000', unit: 'Wh' },
-      { key: 'Süden', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#00ff00', unit: 'Wh' },
+      { key: 'Westen Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'kWh' },
+      { key: 'Süden Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'kWh' },
+      { key: 'Westen', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#ff0000', unit: 'kWh' },
+      { key: 'Süden', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#00ff00', unit: 'kWh' },
     ],
   },
 };
@@ -489,7 +490,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
 
   const latestEntry = await SensorReadings.findOneAsync({}, { sort: { date: -1 } });
   const latestSolarEntry = await SolarReadings.findOneAsync({}, { sort: { date: -1 } });
-  const latest = dayjs(latestEntry.date).isAfter(latestSolarEntry.date)?dayjs(latestEntry.date):dayjs(latestSolarEntry.date);
+  const latest = dayjs(latestEntry.date).isAfter(latestSolarEntry.date) ? dayjs(latestEntry.date) : dayjs(latestSolarEntry.date);
 
   const start = latest
     .clone()
@@ -507,7 +508,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
         .toDate()
     );
   }
-  const search = { date: { $gte: boundaries[0], $lte: boundaries[boundaries.length - 1] } };
+  const search = { date: { $gte: boundaries[0], $lte: boundaries[boundaries.length - 1] }, ...(config[scale][source].match || {}) };
   const collection = config[scale][source].col;
   config[scale][source].lines.forEach((l) => {
     fields['parsed.' + (l.sourceKey || l.key)] = 1;
