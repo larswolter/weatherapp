@@ -456,7 +456,7 @@ config.year = {
   sun: config.month.sun,
   solar: {
     transform(reading) {
-      return {
+      const res = {
         _id: reading._id,
         date: reading.date,
         yearOffset: reading.yearOffset,
@@ -465,14 +465,16 @@ config.year = {
         Westen: (reading['Westen'][0] - reading['Westen Min'][0]) * 0.001,
         Süden: (reading['Süden'][1] - reading['Süden Min'][1]) * 0.001,
       };
+      if (Number.isNaN(res.Westen)) console.log(reading);
+      return res;
     },
     col: SolarReadings,
     unit: 'kWh',
     title: '',
-    match: { 'strings.energy_total': { $gt: 1, $lt: 10000000 } },
+    match: { 'parsed.strings.energy_total': { $gt: 2000, $lt: 10000000, $ne: NaN } },
     lines: [
-      { key: 'Westen Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'kWh' },
-      { key: 'Süden Min', sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'kWh' },
+      { key: 'Westen Min', hidden: true, sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'kWh' },
+      { key: 'Süden Min', hidden: true, sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'kWh' },
       { key: 'Westen', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#ff0000', unit: 'kWh' },
       { key: 'Süden', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#00ff00', unit: 'kWh' },
     ],
@@ -499,7 +501,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
     .subtract(offset + 1, scale)
     .toDate();
 
-  for (let b = 0; b <= config[scale].buckets; b += 1) {
+  for (let b = 1; b <= config[scale].buckets; b += 1) {
     boundaries.push(
       dayjs(start)
         .clone()
@@ -515,7 +517,16 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
     output[l.key] = { [l.sel]: '$parsed.' + (l.sourceKey || l.key) };
     defaultValues[l.key] = 0;
   });
-  const infos = { ...config[scale][source], transform: null, col: null, dateFormat: config[scale].dateFormat, _id: source + scale, source };
+  const infos = {
+    ...config[scale][source],
+    lines: config[scale][source].lines.filter((l) => !l.hidden),
+    match: null,
+    transform: null,
+    col: null,
+    dateFormat: config[scale].dateFormat,
+    _id: source + scale,
+    source,
+  };
   this.added('sensorInfos', source + scale, infos);
   try {
     const results = await collection
@@ -535,9 +546,9 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
       const reading = results.find((r) => dayjs(r._id).isSame(_id, 'second'));
       if (reading) {
         const values = transform ? transform(reading) : reading;
-        this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source, yearOffset });
+        this.added('sensorReadings', source + reading._id, { ...values, _id: source + reading._id, source, yearOffset, offset });
       } else {
-        this.added('sensorReadings', source + _id, { _id: source + _id, date: _id, source, yearOffset });
+        this.added('sensorReadings', source + _id, { _id: source + _id, date: _id, source, yearOffset, offset });
       }
     });
     this.ready();
