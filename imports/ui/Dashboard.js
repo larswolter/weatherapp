@@ -36,7 +36,7 @@ const Dashboard = () => {
     const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
     const powerConsumed = ManualReadings.findOne({ manualReading: 'powerConsumed' }, { sort: { date: -1 } }) || {};
     const powerProduced = ManualReadings.findOne({ manualReading: 'powerProduced' }, { sort: { date: -1 } }) || {};
-    console.log('Tracker',ManualReadings.find().fetch(), {powerConsumed, powerProduced})
+    console.log('Tracker', ManualReadings.find().fetch(), { powerConsumed, powerProduced });
     return (
       (sensor.parsed || solar.parsed) && {
         date: sensor.date,
@@ -52,7 +52,7 @@ const Dashboard = () => {
   });
 
   const reading = latest?.parsed;
-  if (!reading) return <LinearProgress variant="indeterminate" />;
+  if (!reading || !reading.dateutc) return <LinearProgress variant="indeterminate" />;
 
   const wind = beaufort.find((b) => b.mph >= reading.windspdmph_avg10m);
   const windgust = beaufort.find((b) => b.mph >= reading.windgustmph);
@@ -93,15 +93,15 @@ const Dashboard = () => {
           ]}
         />
         <DashboardItem
-          onAddValue={(value)=>{
-            value && Meteor.callAsync('addValue','powerConsumed', Number(value));
+          onAddValue={(value) => {
+            value && Meteor.callAsync('addValue', 'powerConsumed', value);
           }}
           value={`${reading.powerConsumed?.value || '-'} kWh `}
           text={['Strom verbraucht', reading.powerConsumed?.date && dayjs(reading.powerConsumed.date).format('DD.MM. HH:mm')]}
         />
         <DashboardItem
-          onAddValue={(value)=>{
-            value && Meteor.callAsync('addValue','powerProduced', Number(value));
+          onAddValue={(value) => {
+            value && Meteor.callAsync('addValue', 'powerProduced', value);
           }}
           value={`${reading.powerProduced?.value || '-'} kWh `}
           text={['Strom produziert', reading.powerProduced?.date && dayjs(reading.powerProduced.date).format('DD.MM. HH:mm')]}

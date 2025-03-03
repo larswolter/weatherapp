@@ -195,7 +195,6 @@ WebApp.connectHandlers.use('/export', async (request, response) => {
   }
 });
 
-
 const config = {
   hour: {
     buckets: 60,
@@ -293,14 +292,14 @@ const config = {
       col: ManualReadings,
       title: '',
       unit: 'kWh',
-      $match: { manualReading: 'powerConsumed' },
+      match: { manualReading: 'powerConsumed' },
       lines: [{ key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' }],
     },
     powerProduced: {
       col: ManualReadings,
       title: '',
       unit: 'kWh',
-      $match: { manualReading: 'powerProduced' },
+      match: { manualReading: 'powerProduced' },
       lines: [{ key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' }],
     },
   },
@@ -470,18 +469,24 @@ config.year = {
   },
   sun: config.month.sun,
   powerConsumed: {
+    transform(reading) {
+      return {
+        ...reading,
+        'Strom verbraucht': reading['Strom verbraucht'] - reading['Strom verbraucht (min)'],
+      };
+    },
     col: ManualReadings,
     title: '',
     unit: 'kWh',
-    $match: { manualReading: 'powerConsumed' },
+    match: { manualReading: 'powerConsumed' },
     lines: [
-      { key: 'Strom verbraucht (min)', sourceKey: 'value', sel: '$min', stroke: '#dd0000' },
+      { key: 'Strom verbraucht (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#dd0000' },
       { key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' },
     ],
   },
   powerProduced: {
     transform(reading) {
-      const res = {
+      return {
         ...reading,
         'Strom eingespeist': reading['Strom eingespeist'] - reading['Strom eingespeist (min)'],
       };
@@ -489,9 +494,9 @@ config.year = {
     col: ManualReadings,
     title: '',
     unit: 'kWh',
-    $match: { manualReading: 'powerProduced' },
+    match: { manualReading: 'powerProduced' },
     lines: [
-      { key: 'Strom eingespeist (min)', sourceKey: 'value', sel: '$min', stroke: '#00dd00' },
+      { key: 'Strom eingespeist (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#00dd00' },
       { key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' },
     ],
   },
@@ -523,6 +528,7 @@ config.year = {
 };
 
 Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffset = 0 }) {
+  if (!this.userId) throw new Meteor.Error(403, 'access-denied');
   const fields = { date: 1 };
   const output = { date: { $first: '$date' } };
   const defaultValues = {};
@@ -533,7 +539,10 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
 
   const latestEntry = await SensorReadings.findOneAsync({}, { sort: { date: -1 } });
   const latestSolarEntry = await SolarReadings.findOneAsync({}, { sort: { date: -1 } });
-  const latest = dayjs(latestEntry.date).isAfter(latestSolarEntry.date) ? dayjs(latestEntry.date) : dayjs(latestSolarEntry.date);
+  const latestManualEntry = await ManualReadings.findOneAsync({}, { sort: { date: -1 } });
+  let latest = dayjs(latestEntry?.date);
+  if (latest.isBefore(latestSolarEntry?.date)) latest = dayjs(latestSolarEntry.date);
+  if (latest.isBefore(latestManualEntry?.date)) latest = dayjs(latestManualEntry.date);
 
   const start = latest
     .clone()

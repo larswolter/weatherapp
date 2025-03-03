@@ -8,6 +8,9 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import Box  from '@mui/material/Box';
 import ChevronRight from '@mui/icons-material/ChevronRight';
 import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import SolarPowerIcon from '@mui/icons-material/SolarPower';
+import ElectricalServicesIcon from '@mui/icons-material/ElectricalServices';
+import BatterySaverIcon from '@mui/icons-material/BatterySaver';
 import StatsDiagram from './StatsDiagram';
 
 const Stats = ({ yearOffset }) => {
@@ -53,7 +56,13 @@ const Stats = ({ yearOffset }) => {
             {xs ? 'hPA' : 'Druck'}
           </Button>
           <Button variant={sources.includes('solar') ? 'contained' : 'outlined'} onClick={handle('solar')}>
-            {xs ? 'kwH' : 'Solar'}
+            {xs ? <SolarPowerIcon /> : 'Solar'}
+          </Button>
+          <Button variant={sources.includes('powerConsumed') ? 'contained' : 'outlined'} onClick={handle('powerConsumed')}>
+            {xs ? <ElectricalServicesIcon /> : 'Verbrauch'}
+          </Button>
+          <Button variant={sources.includes('powerProduced') ? 'contained' : 'outlined'} onClick={handle('powerProduced')}>
+            {xs ? <BatterySaverIcon /> : 'Produktion'}
           </Button>
         </Box>
         <Box display="flex" flexDirection="row" justifyContent="space-between">

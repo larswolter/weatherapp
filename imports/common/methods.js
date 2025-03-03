@@ -9,6 +9,6 @@ Meteor.methods({
     check(value, Number);
 
     if (!this.userId) throw new Meteor.Error(403, 'access denied');
-    await ManualReadings.insertAsync({ date: new Date(), value, manualReading });
+    await ManualReadings.insertAsync({ date: new Date(), parsed: { value }, value, manualReading });
   },
 });
