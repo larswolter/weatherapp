@@ -3,6 +3,7 @@ import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
 import { setupMQTT } from '../imports/api/mqtt';
+import './excelExport';
 
 await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: -1 });
 await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: 1 });
@@ -12,6 +13,7 @@ await SolarReadings.createIndexAsync({ date: 1 });
 await SolarReadings.createIndexAsync({ 'parsed.last_success': 1 });
 
 WebApp.addHtmlAttributeHook(() => ({ lang: 'de' }));
+
 
 if (process.env.MQTT_URL) {
   setupMQTT({
