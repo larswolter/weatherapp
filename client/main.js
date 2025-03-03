@@ -6,6 +6,7 @@ import createTheme from '@mui/material/styles/createTheme';
 import StyledEngineProvider from '@mui/material/StyledEngineProvider';
 import { App } from '/imports/ui/App';
 import Authenticator from '../imports/ui/Authenticator';
+import '../imports/common/methods';
 
 const AppShell = () => {
   const theme = createTheme({

@@ -1,19 +1,20 @@
 import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
-import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
+import { ManualReadings, SensorReadings, SolarReadings } from '../imports/api/sensorData';
 import { setupMQTT } from '../imports/api/mqtt';
 import './excelExport';
+import '../imports/common/methods';
 
 await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: -1 });
 await SensorReadings.createIndexAsync({ source: 1, yearOffset: 1, date: 1 });
+await ManualReadings.createIndexAsync({ manualReading: 1, date: 1 });
 
 await SolarReadings.createIndexAsync({ date: -1 });
 await SolarReadings.createIndexAsync({ date: 1 });
 await SolarReadings.createIndexAsync({ 'parsed.last_success': 1 });
 
 WebApp.addHtmlAttributeHook(() => ({ lang: 'de' }));
-
 
 if (process.env.MQTT_URL) {
   setupMQTT({
@@ -87,8 +88,12 @@ Meteor.methods({
   },
 });
 
-Meteor.publish('latestData', function () {
+Meteor.publish('latestData', async function () {
   if (!this.userId) throw new Meteor.Error(403, 'access denied');
+  const powerConsumed = await ManualReadings.find({ manualReading: 'powerConsumed' }, { sort: { date: -1 }, limit: 1 }).fetchAsync();
+  const powerProduced = await ManualReadings.find({ manualReading: 'powerProduced' }, { sort: { date: -1 }, limit: 1 }).fetchAsync();
+  powerConsumed[0] && this.added('manualReadings', powerConsumed[0]._id, powerConsumed[0]);
+  powerProduced[0] && this.added('manualReadings', powerProduced[0]._id, powerProduced[0]);
   return [SensorReadings.find({}, { sort: { date: -1 }, limit: 1 }), SolarReadings.find({}, { sort: { date: -1 }, limit: 1 })];
 });
 
@@ -190,18 +195,6 @@ WebApp.connectHandlers.use('/export', async (request, response) => {
   }
 });
 
-Meteor.startup(async () => {
-  await SensorReadings.find().forEachAsync(async (r) => {
-    if (typeof r.parsed.tempf === 'string') {
-      const parsed = {};
-      Object.keys(r.parsed).forEach((key) => {
-        const value = r.parsed[key];
-        parsed[key] = value.match(/^[0-9.]+$/) ? Number(value) : value;
-      });
-      await SensorReadings.updateAsync(r._id, { $set: { parsed } });
-    }
-  });
-});
 
 const config = {
   hour: {
@@ -296,6 +289,20 @@ const config = {
         { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
       ],
     },
+    powerConsumed: {
+      col: ManualReadings,
+      title: '',
+      unit: 'kWh',
+      $match: { manualReading: 'powerConsumed' },
+      lines: [{ key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' }],
+    },
+    powerProduced: {
+      col: ManualReadings,
+      title: '',
+      unit: 'kWh',
+      $match: { manualReading: 'powerProduced' },
+      lines: [{ key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' }],
+    },
   },
 };
 config.day = {
@@ -309,6 +316,8 @@ config.day = {
   barom: config.hour.barom,
   rain: config.hour.rain,
   sun: config.hour.sun,
+  powerConsumed: config.hour.powerConsumed,
+  powerProduced: config.hour.powerProduced,
   solar: {
     transform(reading) {
       return {
@@ -353,6 +362,8 @@ config.week = {
     lines: [{ key: 'Regen pro Stunde', sourceKey: 'hourlyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
+  powerConsumed: config.hour.powerConsumed,
+  powerProduced: config.hour.powerProduced,
   solar: {
     transform(reading) {
       return {
@@ -383,6 +394,8 @@ config.month = {
   humidity: config.hour.humidity,
   wind: config.hour.wind,
   barom: config.hour.barom,
+  powerConsumed: config.hour.powerConsumed,
+  powerProduced: config.hour.powerProduced,
   rain: {
     col: SensorReadings,
     title: '',
@@ -456,6 +469,32 @@ config.year = {
     lines: [{ key: 'Regen pro Monat', sourceKey: 'monthlyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.month.sun,
+  powerConsumed: {
+    col: ManualReadings,
+    title: '',
+    unit: 'kWh',
+    $match: { manualReading: 'powerConsumed' },
+    lines: [
+      { key: 'Strom verbraucht (min)', sourceKey: 'value', sel: '$min', stroke: '#dd0000' },
+      { key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' },
+    ],
+  },
+  powerProduced: {
+    transform(reading) {
+      const res = {
+        ...reading,
+        'Strom eingespeist': reading['Strom eingespeist'] - reading['Strom eingespeist (min)'],
+      };
+    },
+    col: ManualReadings,
+    title: '',
+    unit: 'kWh',
+    $match: { manualReading: 'powerProduced' },
+    lines: [
+      { key: 'Strom eingespeist (min)', sourceKey: 'value', sel: '$min', stroke: '#00dd00' },
+      { key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' },
+    ],
+  },
   solar: {
     transform(reading) {
       const res = {

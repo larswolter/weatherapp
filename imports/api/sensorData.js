@@ -1,8 +1,8 @@
 import { Mongo } from 'meteor/mongo';
-import { Meteor } from 'meteor/meteor';
 
 export const SensorReadings = new Mongo.Collection('sensorReadings');
 export const SolarReadings = new Mongo.Collection('solarReadings');
+export const ManualReadings = new Mongo.Collection('manualReadings');
 export const SensorInfos = new Mongo.Collection('sensorInfos');
 
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { beaufort } from '../api/sensorData';
+import { beaufort, ManualReadings } from '../api/sensorData';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -34,6 +34,9 @@ const Dashboard = () => {
   const latest = useTracker(() => {
     const sensor = SensorReadings.findOne({}, { sort: { date: -1 } }) || {};
     const solar = SolarReadings.findOne({}, { sort: { date: -1 } }) || {};
+    const powerConsumed = ManualReadings.findOne({ manualReading: 'powerConsumed' }, { sort: { date: -1 } }) || {};
+    const powerProduced = ManualReadings.findOne({ manualReading: 'powerProduced' }, { sort: { date: -1 } }) || {};
+    console.log('Tracker',ManualReadings.find().fetch(), {powerConsumed, powerProduced})
     return (
       (sensor.parsed || solar.parsed) && {
         date: sensor.date,
@@ -41,6 +44,8 @@ const Dashboard = () => {
         parsed: {
           ...sensor.parsed,
           ...solar.parsed,
+          powerConsumed,
+          powerProduced,
         },
       }
     );
@@ -86,6 +91,20 @@ const Dashboard = () => {
             ...((reading.strings && reading.strings.map((string) => `${string.power}W ${string.energy_daily}Wh `)) || []),
             reading.strings && reading.strings.reduce((total, string) => total + string.energy_total, 0) / 1000 + 'kWh',
           ]}
+        />
+        <DashboardItem
+          onAddValue={(value)=>{
+            value && Meteor.callAsync('addValue','powerConsumed', Number(value));
+          }}
+          value={`${reading.powerConsumed?.value || '-'} kWh `}
+          text={['Strom verbraucht', reading.powerConsumed?.date && dayjs(reading.powerConsumed.date).format('DD.MM. HH:mm')]}
+        />
+        <DashboardItem
+          onAddValue={(value)=>{
+            value && Meteor.callAsync('addValue','powerProduced', Number(value));
+          }}
+          value={`${reading.powerProduced?.value || '-'} kWh `}
+          text={['Strom produziert', reading.powerProduced?.date && dayjs(reading.powerProduced.date).format('DD.MM. HH:mm')]}
         />
       </Grid>
     </Box>
