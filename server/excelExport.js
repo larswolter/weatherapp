@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import Excel from 'exceljs';
-import { SensorReadings, SolarReadings } from '../imports/api/sensorData';
+import { ManualReadings, SensorReadings, SolarReadings } from '../imports/api/sensorData';
 
 WebApp.connectHandlers.use('/excelExport.xlsx', async (request, response) => {
   try {
@@ -25,6 +25,12 @@ WebApp.connectHandlers.use('/excelExport.xlsx', async (request, response) => {
       query.date = {
         $gte: dayjs(request.query.year, 'YYYY').startOf('year').startOf('day').toDate(),
         $lte: dayjs(request.query.year, 'YYYY').endOf('year').endOf('day').toDate(),
+      };
+    }
+    else if (request.query.gte) {
+      query.date = {
+        $gte: dayjs(request.query.gte, 'YYYYMMDD').startOf('day').toDate(),
+        $lte: dayjs(request.query.lte, 'YYYYMMDD').endOf('day').toDate(),
       };
     }
     await SensorReadings.find(query, { fields: { parsed: 1, date: 1 }, sort: { date: -1 }, limit }).forEachAsync(async (entry, idx) => {
@@ -54,6 +60,15 @@ WebApp.connectHandlers.use('/excelExport.xlsx', async (request, response) => {
     );
     await sheet.commit();
     console.log('finished writing Solar');
+    sheet = wb.addWorksheet('Manuelle Daten');
+    await ManualReadings.find(query, { fields: { value: 1, date: 1, manualReading: 1 }, sort: { date: -1 }, limit }).forEachAsync(async (entry, idx) => {
+      if (idx === 0) sheet.addRow(Object.keys(entry));
+      if (idx % 1000 === 0) await sheet.addRow(Object.values(entry)).commit();
+      sheet.addRow(Object.values(entry));
+    });
+    await sheet.commit();
+    console.log('finished writing manual data');
+
     await wb.commit();
     console.log('finished writing Excel');
   } catch (err) {
