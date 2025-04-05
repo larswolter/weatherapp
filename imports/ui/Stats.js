@@ -15,7 +15,7 @@ import StatsDiagram from './StatsDiagram';
 
 const Stats = ({ yearOffset }) => {
   const [sources, setSources] = useState(['temp']);
-  const [scale, setScale] = useState('hour');
+  const [scale, setScale] = useState('day');
   const [offset, setOffset] = useState(0);
 
   const xs = useMediaQuery((theme) => theme.breakpoints.down('sm'));

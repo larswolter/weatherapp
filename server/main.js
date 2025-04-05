@@ -26,8 +26,7 @@ if (process.env.MQTT_URL) {
 }
 Meteor.startup(() => {
   console.log(
-    `Starting Weatherapp ${process.env.ACCESS_TOKEN ? 'using access token' : 'without access token'} and ${
-      process.eventNames.SUBMIT_TOKEN ? 'using submit token' : 'without submit token'
+    `Starting Weatherapp ${process.env.ACCESS_TOKEN ? 'using access token' : 'without access token'} and ${process.eventNames.SUBMIT_TOKEN ? 'using submit token' : 'without submit token'
     }`
   );
 });
@@ -289,18 +288,50 @@ const config = {
       ],
     },
     powerConsumed: {
+      transform(reading) {
+        return {
+          ...reading,
+          'Strom verbraucht': reading['Strom verbraucht'] - reading['Strom verbraucht (min)'],
+          'Strom eingespeist': reading['Strom eingespeist'] - reading['Strom eingespeist (min)'],
+        };
+      },
+      useBars: true,
       col: ManualReadings,
       title: '',
       unit: 'kWh',
       match: { manualReading: 'powerConsumed' },
-      lines: [{ key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' }],
+      lines: [
+        { key: 'Strom verbraucht (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#dd0000' },
+        { key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' },
+        { key: 'Strom eingespeist (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#00dd00' },
+        { key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' },
+      ],
     },
     powerProduced: {
-      col: ManualReadings,
-      title: '',
+      transform(reading) {
+        const res = {
+          _id: reading._id,
+          date: reading.date,
+          yearOffset: reading.yearOffset,
+          source: reading.source,
+          reading,
+          Westen: (reading['Westen'][0] - reading['Westen Min'][0]) * 0.001,
+          Süden: (reading['Süden'][1] - reading['Süden Min'][1]) * 0.001,
+        };
+        if (Number.isNaN(res.Westen)) console.log(reading);
+        return res;
+      },
+      col: SolarReadings,
+      useBars: true,
       unit: 'kWh',
-      match: { manualReading: 'powerProduced' },
-      lines: [{ key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' }],
+      title: '',
+      match: { 'parsed.strings.energy_total': { $gt: 2000, $lt: 10000000, $ne: NaN } },
+      lines: [
+        { key: 'Westen Min', hidden: true, sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'kWh' },
+        { key: 'Süden Min', hidden: true, sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'kWh' },
+        { key: 'Westen', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#ff0000', unit: 'kWh' },
+        { key: 'Süden', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#00ff00', unit: 'kWh' },
+      ],
     },
   },
 };
@@ -317,26 +348,7 @@ config.day = {
   sun: config.hour.sun,
   powerConsumed: config.hour.powerConsumed,
   powerProduced: config.hour.powerProduced,
-  solar: {
-    transform(reading) {
-      return {
-        ...reading,
-        Westen: reading.Westen[0],
-        Süden: reading.Westen[1],
-        'kW/h Westen': reading['kW/h Westen'][0],
-        'kW/h Süden': reading['kW/h Süden'][1],
-      };
-    },
-    col: SolarReadings,
-    unit: 'W',
-    title: '',
-    lines: [
-      { key: 'Westen', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
-      { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
-      { key: 'kW/h Westen', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#ffaaaa', unit: 'Wh' },
-      { key: 'kW/h Süden', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#aaffaa', unit: 'Wh' },
-    ],
-  },
+  solar: config.hour.solar,
 };
 config.week = {
   buckets: 24 * 7,
@@ -349,6 +361,7 @@ config.week = {
   barom: config.hour.barom,
   rain: {
     col: SensorReadings,
+    useBars: true,
     title: '',
     unit: 'mm',
     transform(reading) {
@@ -363,26 +376,7 @@ config.week = {
   sun: config.hour.sun,
   powerConsumed: config.hour.powerConsumed,
   powerProduced: config.hour.powerProduced,
-  solar: {
-    transform(reading) {
-      return {
-        ...reading,
-        Westen: reading.Westen[0],
-        Süden: reading.Westen[1],
-        'kW/h Westen': reading['kW/h Westen'][0],
-        'kW/h Süden': reading['kW/h Süden'][1],
-      };
-    },
-    col: SolarReadings,
-    unit: 'W',
-    title: '',
-    lines: [
-      { key: 'Westen', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
-      { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
-      { key: 'kW/h Westen', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#ffaaaa', unit: 'Wh' },
-      { key: 'kW/h Süden', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#aaffaa', unit: 'Wh' },
-    ],
-  },
+  solar: config.hour.solar,
 };
 config.month = {
   buckets: 30,
@@ -397,6 +391,7 @@ config.month = {
   powerProduced: config.hour.powerProduced,
   rain: {
     col: SensorReadings,
+    useBars: true,
     title: '',
     unit: 'mm',
     transform(reading) {
@@ -409,26 +404,7 @@ config.month = {
     lines: [{ key: 'Regen pro Tag', sourceKey: 'dailyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
-  solar: {
-    transform(reading) {
-      return {
-        ...reading,
-        Westen: reading.Westen[0],
-        Süden: reading.Westen[1],
-        'kW/h Westen': reading['kW/h Westen'][0],
-        'kW/h Süden': reading['kW/h Süden'][1],
-      };
-    },
-    col: SolarReadings,
-    unit: 'W',
-    title: '',
-    lines: [
-      { key: 'Westen', sourceKey: 'strings.power', sel: '$max', stroke: '#ff0000' },
-      { key: 'Süden', sourceKey: 'strings.power', sel: '$max', stroke: '#00ff00' },
-      { key: 'kW/h Westen', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#ffaaaa', unit: 'Wh' },
-      { key: 'kW/h Süden', sourceKey: 'strings.energy_daily', sel: '$max', stroke: '#aaffaa', unit: 'Wh' },
-    ],
-  },
+  solar: config.hour.solar,
 };
 config.year = {
   buckets: 13,
@@ -456,6 +432,7 @@ config.year = {
   barom: config.month.barom,
   rain: {
     col: SensorReadings,
+    useBars: true,
     title: '',
     unit: 'mm',
     transform(reading) {
@@ -468,63 +445,9 @@ config.year = {
     lines: [{ key: 'Regen pro Monat', sourceKey: 'monthlyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.month.sun,
-  powerConsumed: {
-    transform(reading) {
-      return {
-        ...reading,
-        'Strom verbraucht': reading['Strom verbraucht'] - reading['Strom verbraucht (min)'],
-      };
-    },
-    col: ManualReadings,
-    title: '',
-    unit: 'kWh',
-    match: { manualReading: 'powerConsumed' },
-    lines: [
-      { key: 'Strom verbraucht (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#dd0000' },
-      { key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' },
-    ],
-  },
-  powerProduced: {
-    transform(reading) {
-      return {
-        ...reading,
-        'Strom eingespeist': reading['Strom eingespeist'] - reading['Strom eingespeist (min)'],
-      };
-    },
-    col: ManualReadings,
-    title: '',
-    unit: 'kWh',
-    match: { manualReading: 'powerProduced' },
-    lines: [
-      { key: 'Strom eingespeist (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#00dd00' },
-      { key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' },
-    ],
-  },
-  solar: {
-    transform(reading) {
-      const res = {
-        _id: reading._id,
-        date: reading.date,
-        yearOffset: reading.yearOffset,
-        source: reading.source,
-        reading,
-        Westen: (reading['Westen'][0] - reading['Westen Min'][0]) * 0.001,
-        Süden: (reading['Süden'][1] - reading['Süden Min'][1]) * 0.001,
-      };
-      if (Number.isNaN(res.Westen)) console.log(reading);
-      return res;
-    },
-    col: SolarReadings,
-    unit: 'kWh',
-    title: '',
-    match: { 'parsed.strings.energy_total': { $gt: 2000, $lt: 10000000, $ne: NaN } },
-    lines: [
-      { key: 'Westen Min', hidden: true, sourceKey: 'strings.energy_total', sel: '$min', stroke: '#ff0000', unit: 'kWh' },
-      { key: 'Süden Min', hidden: true, sourceKey: 'strings.energy_total', sel: '$min', stroke: '#00ff00', unit: 'kWh' },
-      { key: 'Westen', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#ff0000', unit: 'kWh' },
-      { key: 'Süden', sourceKey: 'strings.energy_total', sel: '$max', stroke: '#00ff00', unit: 'kWh' },
-    ],
-  },
+  powerConsumed: config.hour.powerConsumed,
+  powerProduced: config.hour.powerProduced,
+  solar: config.month.solar,
 };
 
 Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffset = 0 }) {
@@ -541,8 +464,8 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
   const latestSolarEntry = await SolarReadings.findOneAsync({}, { sort: { date: -1 } });
   const latestManualEntry = await ManualReadings.findOneAsync({}, { sort: { date: -1 } });
   let latest = dayjs(latestEntry?.date);
-  if (latest.isBefore(latestSolarEntry?.date)) latest = dayjs(latestSolarEntry.date);
-  if (latest.isBefore(latestManualEntry?.date)) latest = dayjs(latestManualEntry.date);
+  if (latestSolarEntry && latest.isBefore(latestSolarEntry?.date)) latest = dayjs(latestSolarEntry.date);
+  if (latestManualEntry && latest.isBefore(latestManualEntry?.date)) latest = dayjs(latestManualEntry.date);
 
   const start = latest
     .clone()

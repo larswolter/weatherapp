@@ -68,7 +68,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
         </Box>
       ) : null}
       <ResponsiveContainer width="100%" height={diagramHeight}>
-        {scale === 'year' ? (
+        {sensorInfos.useBars ? (
           <BarChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
             <Legend verticalAlign="top" height={36} />
