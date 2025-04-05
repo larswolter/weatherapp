@@ -9,6 +9,7 @@ import DashboardItem from './DashboardItem';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import de from 'dayjs/locale/de';
+import { useAuthContext } from './Authenticator';
 
 dayjs.locale(de);
 dayjs.extend(utc);
@@ -20,9 +21,7 @@ const degToCompass = (num) => {
 };
 
 const Dashboard = () => {
-  const userId = useTracker(() => {
-    return Meteor.connection.userId();
-  });
+  const { userId } = useAuthContext();
   useEffect(() => {
     const sup = Meteor.subscribe('latestData');
     console.log('subscribing latestData');
