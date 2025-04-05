@@ -26,7 +26,8 @@ if (process.env.MQTT_URL) {
 }
 Meteor.startup(() => {
   console.log(
-    `Starting Weatherapp ${process.env.ACCESS_TOKEN ? 'using access token' : 'without access token'} and ${process.eventNames.SUBMIT_TOKEN ? 'using submit token' : 'without submit token'
+    `Starting Weatherapp ${process.env.ACCESS_TOKEN ? 'using access token' : 'without access token'} and ${
+      process.eventNames.SUBMIT_TOKEN ? 'using submit token' : 'without submit token'
     }`
   );
 });
@@ -89,10 +90,26 @@ Meteor.methods({
 
 Meteor.publish('latestData', async function () {
   if (!this.userId) throw new Meteor.Error(403, 'access denied');
-  const powerConsumed = await ManualReadings.find({ manualReading: 'powerConsumed' }, { sort: { date: -1 }, limit: 1 }).fetchAsync();
-  const powerProduced = await ManualReadings.find({ manualReading: 'powerProduced' }, { sort: { date: -1 }, limit: 1 }).fetchAsync();
-  powerConsumed[0] && this.added('manualReadings', powerConsumed[0]._id, powerConsumed[0]);
-  powerProduced[0] && this.added('manualReadings', powerProduced[0]._id, powerProduced[0]);
+  const consumedHandler = await ManualReadings.find({ manualReading: 'powerConsumed' }, { sort: { date: -1 }, limit: 1 }).observe({
+    removed: (old) => {
+      this.removed('manualReadings', old._id);
+    },
+    added: (doc) => {
+      this.added('manualReadings', doc._id, doc);
+    },
+  });
+  const producedHandler = await ManualReadings.find({ manualReading: 'powerProduced' }, { sort: { date: -1 }, limit: 1 }).observe({
+    removed: (old) => {
+      this.removed('manualReadings', old._id);
+    },
+    added: (doc) => {
+      this.added('manualReadings', doc._id, doc);
+    },
+  });
+  this.onStop(() => {
+    consumedHandler.stop();
+    producedHandler.stop();
+  });
   return [SensorReadings.find({}, { sort: { date: -1 }, limit: 1 }), SolarReadings.find({}, { sort: { date: -1 }, limit: 1 })];
 });
 
