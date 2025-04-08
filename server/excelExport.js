@@ -1,5 +1,4 @@
 import dayjs from 'dayjs';
-import { Meteor } from 'meteor/meteor';
 import { WebApp } from 'meteor/webapp';
 import Excel from 'exceljs';
 import { ManualReadings, SensorReadings, SolarReadings } from '../imports/api/sensorData';
