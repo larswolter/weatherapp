@@ -89,4 +89,3 @@ Meteor.methods({
     return whHours;
   },
 });
-

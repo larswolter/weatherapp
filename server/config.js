@@ -1,6 +1,5 @@
 import { ManualReadings, SensorReadings, SolarReadings } from '../imports/api/sensorData';
 
-
 const config = {
   hour: {
     buckets: 60,
