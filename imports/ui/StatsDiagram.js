@@ -7,29 +7,14 @@ import dayjs from 'dayjs';
 import Skeleton from '@mui/material/Skeleton';
 import useTheme from '@mui/material/styles/useTheme';
 import Box from '@mui/material/Box';
-import { LinearProgress } from '@mui/material';
-
-const dateFormater = (mode) => (item) => {
-  switch (mode) {
-    case 'hour':
-      return dayjs(item).format('HH:mm');
-    case 'day':
-      return dayjs(item).format('HH:mm');
-    case 'week':
-      return dayjs(item).format('ddd');
-    case 'month':
-      return dayjs(item).format('DD.MM.');
-    case 'year':
-      return dayjs(item).format('MMM YYYY');
-    default:
-      return dayjs(item).format('DD.MM. HH:mm');
-  }
-};
+import { LinearProgress, Typography } from '@mui/material';
+import { dateFormater } from './helpers';
+import config from '../common/config';
 
 const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset }) => {
   const theme = useTheme();
   const darkMode = theme.palette.mode === 'dark';
-
+  const subScale = config[scale][source].subScale || config[scale].subScale;
   const isLoading = useTracker(() => {
     const sub = Meteor.subscribe('sensorStats', { offset, source, scale }, () => {});
     const subOld = yearOffset && Meteor.subscribe('sensorStats', { offset, source, scale, yearOffset }, () => {});
@@ -54,7 +39,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
   const sensorInfos = useTracker(() => {
     return SensorInfos.findOne({ source });
   });
-
+  if(!config[scale][source]) return <Typography padding={4} textAlign="center" width="100%">Daten können in dieser Zeitskala nicht angezeigt werden</Typography>
   if (!sensorInfos || !sensorReadings) return <Skeleton variant="rectangular" height={diagramHeight} />;
 
   console.log({ sensorInfos, sensorReadings });
@@ -70,7 +55,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
       <ResponsiveContainer width="100%" height={diagramHeight}>
         {sensorInfos.useBars ? (
           <BarChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
+            <XAxis dataKey="date" tickFormatter={dateFormater(subScale)} />
             <Legend verticalAlign="top" height={36} />
             <YAxis width={50} type="number" unit={''} for />
             <CartesianGrid strokeDasharray="3 3" />
@@ -80,7 +65,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
                 const line = sensorInfos.lines.find((l) => l.key === key);
                 return value.toFixed(2) + (line && line.unit ? line.unit : sensorInfos.unit);
               }}
-              labelFormatter={dateFormater(scale)}
+              labelFormatter={dateFormater(subScale)}
             />
             {sensorInfos.lines &&
               sensorInfos.lines.map((line) => (
@@ -100,7 +85,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
           </BarChart>
         ) : (
           <LineChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <XAxis dataKey="date" tickFormatter={dateFormater(scale)} />
+            <XAxis dataKey="date" tickFormatter={dateFormater(subScale)} />
             <Legend verticalAlign="top" height={36} />
             <YAxis width={50} type="number" unit={''} for />
             <CartesianGrid strokeDasharray="3 3" />
@@ -110,7 +95,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
                 const line = sensorInfos.lines.find((l) => l.key === key);
                 return value.toFixed(2) + (line && line.unit ? line.unit : sensorInfos.unit);
               }}
-              labelFormatter={dateFormater(scale)}
+              labelFormatter={dateFormater(subScale)}
             />
             {sensorInfos.lines &&
               sensorInfos.lines.map((line) => (

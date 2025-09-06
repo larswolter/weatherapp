@@ -1,8 +1,13 @@
 import dayjs from 'dayjs';
 import { Meteor } from 'meteor/meteor';
 import { ManualReadings, SensorReadings, SolarReadings } from '../imports/api/sensorData';
-import config from './config';
+import config from '../imports/common/config';
 
+const collections = {
+  ManualReadings, 
+  SensorReadings, 
+  SolarReadings
+}
 Meteor.publish('latestData', async function () {
   if (!this.userId) throw new Meteor.Error(403, 'access denied');
   const consumedHandler = await ManualReadings.find({ manualReading: 'powerConsumed' }, { sort: { date: -1 }, limit: 1 }).observe({
@@ -34,6 +39,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
   const output = { date: { $first: '$date' } };
   const fillOutput = {};
   const defaultValues = {};
+  if(!config[scale][source]) return [];
   const transform = config[scale][source].transform;
   const densityRange = config[scale].densityRange;
   const boundaries = [];
@@ -43,7 +49,7 @@ Meteor.publish('sensorStats', async function ({ source, offset, scale, yearOffse
   const end = dayjs().endOf(scale).subtract(yearOffset, 'year').subtract(offset, scale);
   const preSearch = { date: { $gte: start.subtract(1,scale).toDate(), $lte: end.add(1,scale).toDate() }, ...(config[scale][source].match || {}) };
   const finalSearch = { date: { $gte: start.toDate(), $lte: end.toDate() } };
-  const collection = config[scale][source].col;
+  const collection = collections[config[scale][source].col];
   config[scale][source].lines.forEach((l) => {
     fields['parsed.' + (l.sourceKey || l.key)] = 1;
     if (config[scale][source].dontInterpolate) {

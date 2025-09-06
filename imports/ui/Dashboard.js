@@ -8,11 +8,13 @@ import { SensorReadings, SolarReadings } from '../api/sensorData';
 import DashboardItem from './DashboardItem';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import week from 'dayjs/plugin/isoWeek';
 import de from 'dayjs/locale/de';
 import { useAuthContext } from './Authenticator';
 
 dayjs.locale(de);
 dayjs.extend(utc);
+dayjs.extend(week);
 
 const degToCompass = (num) => {
   const val = Number(num) / 22.5 + 0.5;

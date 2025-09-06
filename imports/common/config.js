@@ -1,4 +1,3 @@
-import { ManualReadings, SensorReadings, SolarReadings } from '../imports/api/sensorData';
 
 const config = {
   hour: {
@@ -15,7 +14,7 @@ const config = {
           Außen: ((reading.Außen - 32) * 5) / 9,
         };
       },
-      col: SensorReadings,
+      col: 'SensorReadings',
       unit: '°',
       title: '',
       lines: [
@@ -24,7 +23,7 @@ const config = {
       ],
     },
     humidity: {
-      col: SensorReadings,
+      col: 'SensorReadings',
       title: '',
       unit: '%',
       lines: [
@@ -34,7 +33,7 @@ const config = {
       ],
     },
     wind: {
-      col: SensorReadings,
+      col: 'SensorReadings',
       transform(reading) {
         return {
           ...reading,
@@ -50,7 +49,7 @@ const config = {
       ],
     },
     barom: {
-      col: SensorReadings,
+      col: 'SensorReadings',
       title: '',
       unit: 'hpa',
 
@@ -60,7 +59,7 @@ const config = {
       ],
     },
     rain: {
-      col: SensorReadings,
+      col: 'SensorReadings',
       title: '',
       unit: 'mm',
       transform(reading) {
@@ -73,7 +72,7 @@ const config = {
       lines: [{ key: 'Regenrate', sourceKey: 'rainratein', sel: '$avg', stroke: '#7777ff' }],
     },
     sun: {
-      col: SensorReadings,
+      col: 'SensorReadings',
       title: '',
       unit: 'W',
       lines: [{ key: 'Sonneneinstrahlung', sourceKey: 'solarradiation', sel: '$avg', stroke: '#ffaa00' }],
@@ -86,7 +85,7 @@ const config = {
           Süden: reading['Süden'] && reading['Süden'][1],
         };
       },
-      col: SolarReadings,
+      col: 'SolarReadings',
       dontInterpolate: true,
       unit: 'W',
       title: '',
@@ -104,7 +103,7 @@ const config = {
         };
       },
       useBars: true,
-      col: ManualReadings,
+      col: 'ManualReadings',
       title: '',
       unit: 'kWh',
       match: { manualReading: 'powerConsumed' },
@@ -127,7 +126,7 @@ const config = {
         if (Number.isNaN(res.Westen)) console.log(reading);
         return res;
       },
-      col: SolarReadings,
+      col: 'SolarReadings',
       useBars: true,
       dontInterpolate: true,
       unit: 'kWh',
@@ -169,7 +168,7 @@ config.week = {
   wind: config.hour.wind,
   barom: config.hour.barom,
   rain: {
-    col: SensorReadings,
+    col: 'SensorReadings',
     useBars: true,
     title: '',
     unit: 'mm',
@@ -200,7 +199,7 @@ config.month = {
   powerConsumed: config.hour.powerConsumed,
   powerProduced: config.hour.powerProduced,
   rain: {
-    col: SensorReadings,
+    col: 'SensorReadings',
     useBars: true,
     title: '',
     unit: 'mm',
@@ -214,7 +213,7 @@ config.month = {
     lines: [{ key: 'Regen pro Tag', sourceKey: 'dailyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
-  solar: config.hour.solar,
+    solar: false,
 };
 config.year = {
   buckets: 13,
@@ -230,7 +229,7 @@ config.year = {
         Außen: ((reading.Außen - 32) * 5) / 9,
       };
     },
-    col: SensorReadings,
+    col: 'SensorReadings',
     unit: '°',
     title: '',
     lines: [
@@ -242,7 +241,7 @@ config.year = {
   wind: config.month.wind,
   barom: config.month.barom,
   rain: {
-    col: SensorReadings,
+    col: 'SensorReadings',
     useBars: true,
     title: '',
     unit: 'mm',

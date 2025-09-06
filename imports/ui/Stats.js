@@ -5,13 +5,16 @@ import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import Box  from '@mui/material/Box';
+import Box from '@mui/material/Box';
 import ChevronRight from '@mui/icons-material/ChevronRight';
 import ChevronLeft from '@mui/icons-material/ChevronLeft';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import ElectricalServicesIcon from '@mui/icons-material/ElectricalServices';
 import BatterySaverIcon from '@mui/icons-material/BatterySaver';
 import StatsDiagram from './StatsDiagram';
+import { Typography } from '@mui/material';
+import dayjs from 'dayjs';
+import { dateFormater, scaleFormat } from './helpers';
 
 const Stats = ({ yearOffset }) => {
   const [sources, setSources] = useState(['temp']);
@@ -32,7 +35,7 @@ const Stats = ({ yearOffset }) => {
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">
       <Box padding={{ xs: 0, sm: 2 }} overflow="hidden">
         {sources.map((source, idx) => (
-          <StatsDiagram idx={idx} key={source} source={source} scale={scale} offset={offset} yearOffset={yearOffset||0} diagramHeight={diagramHeight} />
+          <StatsDiagram idx={idx} key={source} source={source} scale={scale} offset={offset} yearOffset={yearOffset || 0} diagramHeight={diagramHeight} />
         ))}
       </Box>
       <Box boxShadow="0px -3px 5px rgba(0,0,0,0.2)" display="flex" flexDirection="column">
@@ -69,25 +72,27 @@ const Stats = ({ yearOffset }) => {
           <Button onClick={() => setOffset((cur) => cur + 1)}>
             <ChevronLeft />
           </Button>
-          <FormControl>
-            <InputLabel id="mode-label">Zeitraum</InputLabel>
-            <Select
-              variant="standard"
-              labelId="mode-label"
-              id="mode-select"
-              value={scale}
-              onChange={(evt) => {
-                setScale(evt.target.value);
-                setOffset(0);
-              }}
-            >
-              <MenuItem value={'hour'}>Stunde</MenuItem>
-              <MenuItem value={'day'}>Tag</MenuItem>
-              <MenuItem value={'week'}>Woche</MenuItem>
-              <MenuItem value={'month'}>Monat</MenuItem>
-              <MenuItem value={'year'}>Jahr</MenuItem>
-            </Select>
-          </FormControl>
+          <Box display="flex" alignItems="center" gap={2}>
+            <FormControl>
+              <Select
+                variant="standard"
+                labelId="mode-label"
+                id="mode-select"
+                value={scale}
+                onChange={(evt) => {
+                  setScale(evt.target.value);
+                  setOffset(0);
+                }}
+              >
+                <MenuItem value={'hour'}>Stunde</MenuItem>
+                <MenuItem value={'day'}>Tag</MenuItem>
+                <MenuItem value={'week'}>Woche</MenuItem>
+                <MenuItem value={'month'}>Monat</MenuItem>
+                <MenuItem value={'year'}>Jahr</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography>{dayjs().subtract(offset, scale).format(scaleFormat(scale))}</Typography>
+          </Box>
           <Button disabled={offset === 0} onClick={() => setOffset((cur) => Math.max(0, cur - 1))}>
             <ChevronRight />
           </Button>
