@@ -4,6 +4,7 @@ const config = {
   hour: {
     buckets: 60,
     subScale: 'minute',
+    densityRange: { unit: 'second', step: 10 },
     subScaleMultiplier: 1,
     dateFormat: 'HH:mm',
     temp: {
@@ -81,11 +82,12 @@ const config = {
       transform(reading) {
         return {
           ...reading,
-          Westen: reading.Westen[0],
-          Süden: reading.Westen[1],
+          Westen: reading.Westen && reading.Westen[0],
+          Süden: reading['Süden'] && reading['Süden'][1],
         };
       },
       col: SolarReadings,
+      dontInterpolate: true,
       unit: 'W',
       title: '',
       lines: [
@@ -109,8 +111,6 @@ const config = {
       lines: [
         { key: 'Strom verbraucht (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#dd0000' },
         { key: 'Strom verbraucht', sourceKey: 'value', sel: '$max', stroke: '#dd0000' },
-        { key: 'Strom eingespeist (min)', hidden: true, sourceKey: 'value', sel: '$min', stroke: '#00dd00' },
-        { key: 'Strom eingespeist', sourceKey: 'value', sel: '$max', stroke: '#00dd00' },
       ],
     },
     powerProduced: {
@@ -121,14 +121,15 @@ const config = {
           yearOffset: reading.yearOffset,
           source: reading.source,
           reading,
-          Westen: (reading['Westen'][0] - reading['Westen Min'][0]) * 0.001,
-          Süden: (reading['Süden'][1] - reading['Süden Min'][1]) * 0.001,
+          Westen: reading.Westen && (reading['Westen'][0] - reading['Westen Min'][0]) * 0.001,
+          Süden: reading['Süden'] && (reading['Süden'][1] - reading['Süden Min'][1]) * 0.001,
         };
         if (Number.isNaN(res.Westen)) console.log(reading);
         return res;
       },
       col: SolarReadings,
       useBars: true,
+      dontInterpolate: true,
       unit: 'kWh',
       title: '',
       match: { 'parsed.strings.energy_total': { $gt: 2000, $lt: 10000000, $ne: NaN } },
@@ -144,6 +145,7 @@ const config = {
 config.day = {
   buckets: 48,
   subScale: 'minute',
+  densityRange: { unit: 'minute', step: 1 },
   dateFormat: 'HH:mm',
   subScaleMultiplier: 30,
   temp: config.hour.temp,
@@ -152,13 +154,14 @@ config.day = {
   barom: config.hour.barom,
   rain: config.hour.rain,
   sun: config.hour.sun,
-  powerConsumed: config.hour.powerConsumed,
-  powerProduced: config.hour.powerProduced,
+  powerConsumed: {...config.hour.powerConsumed, subScale: 'hour'},
+  powerProduced: {...config.hour.powerProduced, subScale: 'hour'},
   solar: config.hour.solar,
 };
 config.week = {
-  buckets: 24 * 7,
+  buckets: 7,
   subScale: 'hour',
+  densityRange: { unit: 'minute', step: 10 },
   dateFormat: 'DD. HH',
   subScaleMultiplier: 1,
   temp: config.hour.temp,
@@ -180,13 +183,14 @@ config.week = {
     lines: [{ key: 'Regen pro Stunde', sourceKey: 'hourlyrainin', sel: '$max', stroke: '#7777ff' }],
   },
   sun: config.hour.sun,
-  powerConsumed: config.hour.powerConsumed,
-  powerProduced: config.hour.powerProduced,
+  powerConsumed: {...config.hour.powerConsumed, subScale: 'day'},
+  powerProduced: {...config.hour.powerProduced, subScale: 'day'},
   solar: config.hour.solar,
 };
 config.month = {
   buckets: 30,
   subScale: 'day',
+  densityRange: { unit: 'hour', step: 1 },
   dateFormat: 'DD.MM',
   subScaleMultiplier: 1,
   temp: config.hour.temp,
@@ -215,6 +219,7 @@ config.month = {
 config.year = {
   buckets: 13,
   subScale: 'month',
+  densityRange: { unit: 'day', step: 1 },
   subScaleMultiplier: 1,
   dateFormat: 'MM',
   temp: {

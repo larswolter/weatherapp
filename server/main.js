@@ -89,3 +89,56 @@ Meteor.methods({
     return whHours;
   },
 });
+
+
+const interpolateAggregation = [
+  // Phase 1: Projektion und Gruppierung
+  {
+    $group: {
+      _id: {
+        $dateTrunc: {
+          date: "$datum", // Dein Datumsfeld
+          unit: "day"
+        }
+      },
+      value: { $avg: "$wert" } // Dein Wertfeld; $avg, $first oder $last
+    }
+  },
+
+  // Phase 2: Sortieren
+  {
+    $sort: {
+      _id: 1 // Sortiere nach dem Datum
+    }
+  },
+
+  // Phase 3: Interpolation und Delta-Berechnung
+  {
+    $setWindowFields: {
+      partitionBy: null,
+      sortBy: { _id: 1 },
+      output: {
+        interpolatedValue: {
+          $linearFill: "$value"
+        },
+        delta: {
+          $subtract: [
+            { $linearFill: "$value" },
+            { $lag: ["$value", 1] }
+          ]
+        }
+      }
+    }
+  },
+
+  // Phase 4: Aufräumen (optional)
+  {
+    $project: {
+      _id: 1,
+      datum: "$_id",
+      interpolatedValue: 1,
+      delta: 1,
+      originalValue: "$value"
+    }
+  }
+]
