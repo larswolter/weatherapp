@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+/* eslint-disable react/prop-types */
+import React from 'react';
 import { Meteor } from 'meteor/meteor';
 import { useTracker } from 'meteor/react-meteor-data';
 import { SensorInfos, SensorReadings } from '../api/sensorData';
@@ -11,7 +12,7 @@ import { LinearProgress, Typography } from '@mui/material';
 import { dateFormater } from './helpers';
 import config from '../common/config';
 
-const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset }) => {
+const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset, onDateClick }) => {
   const theme = useTheme();
   const darkMode = theme.palette.mode === 'dark';
   const subScale = config[scale][source].subScale || config[scale].subScale;
@@ -39,7 +40,12 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
   const sensorInfos = useTracker(() => {
     return SensorInfos.findOne({ source });
   });
-  if(!config[scale][source]) return <Typography padding={4} textAlign="center" width="100%">Daten können in dieser Zeitskala nicht angezeigt werden</Typography>
+  if (!config[scale][source])
+    return (
+      <Typography padding={4} textAlign="center" width="100%">
+        Daten können in dieser Zeitskala nicht angezeigt werden
+      </Typography>
+    );
   if (!sensorInfos || !sensorReadings) return <Skeleton variant="rectangular" height={diagramHeight} />;
 
   console.log({ sensorInfos, sensorReadings });
@@ -54,7 +60,14 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
       ) : null}
       <ResponsiveContainer width="100%" height={diagramHeight}>
         {sensorInfos.useBars ? (
-          <BarChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <BarChart
+            onClick={(evt) => ['day', 'month', 'hour'].includes(subScale) && onDateClick(evt.activeLabel, subScale)}
+            syncId="anyId"
+            width={730}
+            height={diagramHeight}
+            data={sensorReadings}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
             <XAxis dataKey="date" tickFormatter={dateFormater(subScale)} />
             <Legend verticalAlign="top" height={36} />
             <YAxis width={50} type="number" unit={''} for />
@@ -84,7 +97,13 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
               ))}
           </BarChart>
         ) : (
-          <LineChart syncId="anyId" width={730} height={diagramHeight} data={sensorReadings} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <LineChart
+            syncId="anyId"
+            width={730}
+            height={diagramHeight}
+            data={sensorReadings}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
             <XAxis dataKey="date" tickFormatter={dateFormater(subScale)} />
             <Legend verticalAlign="top" height={36} />
             <YAxis width={50} type="number" unit={''} for />
@@ -123,7 +142,7 @@ const StatsDiagram = ({ source, scale, offset, diagramHeight, idx, yearOffset })
           </LineChart>
         )}
       </ResponsiveContainer>
-      {isLoading?<LinearProgress />:null}
+      {isLoading ? <LinearProgress /> : null}
     </Box>
   );
 };

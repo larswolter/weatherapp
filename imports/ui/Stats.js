@@ -15,6 +15,15 @@ import StatsDiagram from './StatsDiagram';
 import { Typography } from '@mui/material';
 import dayjs from 'dayjs';
 import { dateFormater, scaleFormat } from './helpers';
+import config from '../common/config';
+
+const scales = [
+  { value: 'hour', name: 'Stunde' },
+  { value: 'day', name: 'Tag' },
+  { value: 'week', name: 'Woche' },
+  { value: 'month', name: 'Monat' },
+  { value: 'year', name: 'Jahr' },
+];
 
 const Stats = ({ yearOffset }) => {
   const [sources, setSources] = useState(['temp']);
@@ -30,12 +39,28 @@ const Stats = ({ yearOffset }) => {
   };
 
   const diagramHeight = (window.innerHeight - 210) / sources.length;
+  const onDateClick = (date, newScale) => {
+    if (newScale) {
+      console.log({newScale, date, offset, diff:dayjs().endOf(newScale).diff(dayjs(date), newScale) })
+      setScale(newScale);
+      setOffset(dayjs().endOf(newScale).diff(dayjs(date), newScale));
+    }
+  };
 
   return (
     <Box display="flex" height="100%" flexDirection="column" justifyContent="space-between">
       <Box padding={{ xs: 0, sm: 2 }} overflow="hidden">
         {sources.map((source, idx) => (
-          <StatsDiagram idx={idx} key={source} source={source} scale={scale} offset={offset} yearOffset={yearOffset || 0} diagramHeight={diagramHeight} />
+          <StatsDiagram
+            idx={idx}
+            onDateClick={onDateClick}
+            key={source}
+            source={source}
+            scale={scale}
+            offset={offset}
+            yearOffset={yearOffset || 0}
+            diagramHeight={diagramHeight}
+          />
         ))}
       </Box>
       <Box boxShadow="0px -3px 5px rgba(0,0,0,0.2)" display="flex" flexDirection="column">
@@ -84,11 +109,11 @@ const Stats = ({ yearOffset }) => {
                   setOffset(0);
                 }}
               >
-                <MenuItem value={'hour'}>Stunde</MenuItem>
-                <MenuItem value={'day'}>Tag</MenuItem>
-                <MenuItem value={'week'}>Woche</MenuItem>
-                <MenuItem value={'month'}>Monat</MenuItem>
-                <MenuItem value={'year'}>Jahr</MenuItem>
+                {scales.map((s) => (
+                  <MenuItem key={s.value} value={s.value}>
+                    {s.name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
             <Typography>{dayjs().subtract(offset, scale).format(scaleFormat(scale))}</Typography>
