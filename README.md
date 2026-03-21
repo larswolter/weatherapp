@@ -1,5 +1,7 @@
 # Weatherapp
 
+## This repo has moved to Codeberg [https://codeberg.org/larswolter/weatherapp](https://codeberg.org/larswolter/weatherapp)
+
 A small Meteor WebApp that receives Ecowitt Data and displays it using a Dashboard and Charts
 
 Very early stage of development
